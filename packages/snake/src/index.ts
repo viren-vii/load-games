@@ -58,7 +58,7 @@ export class SnakeEngine extends BaseEngine {
     this.input.on('arrowRight', () => startOrTurn('right'))
     this.input.on('tap', () => {
       if (this.state === 'idle') { this.beginGame(); return }
-      if (this.state === 'gameover') { this.reset(); this.restartGame() }
+      if (this.state === 'gameover') { this.tryGameOverRestart(() => { this.reset(); this.restartGame() }) }
     })
   }
 
@@ -133,6 +133,8 @@ export class SnakeEngine extends BaseEngine {
 
     if (this.state === 'gameover') this.renderGameOver(`Score: ${this.score}`)
   }
+
+  getScore() { return this.score }
 
   destroy() {
     super.destroy()

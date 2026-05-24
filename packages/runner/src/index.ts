@@ -54,7 +54,7 @@ export class RunnerEngine extends BaseEngine {
 
   private jump() {
     if (this.state === 'idle') { this.beginGame(); if (this.onGround) { this.playerVel = JUMP_VEL; this.onGround = false }; return }
-    if (this.state === 'gameover') { this.reset(); this.restartGame(); return }
+    if (this.state === 'gameover') { this.tryGameOverRestart(() => { this.reset(); this.restartGame() }); return }
     if (this.state === 'running' && this.onGround) { this.playerVel = JUMP_VEL; this.onGround = false }
   }
 
@@ -132,6 +132,8 @@ export class RunnerEngine extends BaseEngine {
 
     if (this.state === 'gameover') this.renderGameOver(`${this.score}m`)
   }
+
+  getScore() { return this.score }
 
   destroy() {
     super.destroy()

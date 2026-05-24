@@ -41,7 +41,10 @@ export class SpaceInvadersEngine extends BaseEngine {
     this.input = new InputManager(canvas)
     this.input.on('tap', () => {
       if (this.state === 'idle') { this.beginGame(); return }
-      if (this.state === 'gameover') { this.wave = 1; this.score = 0; this.init(); this.restartGame(); return }
+      if (this.state === 'gameover') {
+        this.tryGameOverRestart(() => { this.wave = 1; this.score = 0; this.init(); this.restartGame() })
+        return
+      }
       this.shoot()
     })
     this.input.on('arrowLeft',  () => { if (this.state === 'idle') this.beginGame() })
@@ -184,6 +187,8 @@ export class SpaceInvadersEngine extends BaseEngine {
 
     if (this.state === 'gameover') this.renderGameOver(`Score: ${this.score}`)
   }
+
+  getScore() { return this.score }
 
   destroy() {
     super.destroy()

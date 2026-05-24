@@ -48,7 +48,7 @@ export class FlappyEngine extends BaseEngine {
 
   private flap() {
     if (this.state === 'idle') { this.beginGame(); this.birdVel = FLAP_VEL; return }
-    if (this.state === 'gameover') { this.reset(); this.restartGame(); return }
+    if (this.state === 'gameover') { this.tryGameOverRestart(() => { this.reset(); this.restartGame() }); return }
     if (this.state === 'running') this.birdVel = FLAP_VEL
   }
 
@@ -123,6 +123,8 @@ export class FlappyEngine extends BaseEngine {
 
     if (this.state === 'gameover') this.renderGameOver(`Score: ${this.score}`)
   }
+
+  getScore() { return this.score }
 
   destroy() {
     super.destroy()

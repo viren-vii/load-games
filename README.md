@@ -51,6 +51,78 @@ const engine = new SnakeEngine(canvas, { width: 320, height: 320 })
 engine.start()
 ```
 
+## The graceful-handoff problem
+
+You're showing a game while an AI generates a response (or any async work). When the response lands, you don't want to rip the game away mid-life — the player has a high-score run going. You also can't wait forever; the user is waiting for content.
+
+`<GameCanvas/>` solves this with a **`ready` signal** + a **`onDismiss` callback**. The contract:
+
+1. **You set `ready={true}`** when your underlying work finishes.
+2. The game shows a small pulsing **"● READY"** badge top-right — non-intrusive.
+3. The current life continues uninterrupted.
+4. On the next game-over, the "tap to restart" prompt becomes **"tap to continue →"**.
+5. Player taps → **`onDismiss(score)`** fires → you unmount the canvas and show your content.
+
+Player feels in control. Content arrives the moment they're done. No abrupt cut.
+
+```tsx
+import { useState } from 'react'
+import { GameCanvas, type GameHandle } from '@load-games/react'
+import { SnakeEngine } from '@load-games/snake'
+
+function AskAI({ prompt }: { prompt: string }) {
+  const [response, setResponse] = useState<string | null>(null)
+  const [showGame, setShowGame] = useState(true)
+  const gameRef = useRef<GameHandle>(null)
+
+  useEffect(() => {
+    fetchAI(prompt).then(setResponse)
+  }, [prompt])
+
+  // Optional escape hatch: if user ignores the ready badge for 30s, force-dismiss.
+  useEffect(() => {
+    if (!response) return
+    const t = setTimeout(() => gameRef.current?.dismiss(), 30_000)
+    return () => clearTimeout(t)
+  }, [response])
+
+  if (!showGame) return <Markdown>{response}</Markdown>
+
+  return (
+    <GameCanvas
+      ref={gameRef}
+      createEngine={(c, cfg) => new SnakeEngine(c, cfg)}
+      width={320} height={320}
+      ready={response !== null}                  // ← declarative signal
+      onDismiss={(finalScore) => {
+        track('game.dismissed', { finalScore })
+        setShowGame(false)                       // ← swap in your content
+      }}
+    />
+  )
+}
+```
+
+### `GameHandle` imperative API (via ref)
+
+| Method | When to use |
+|---|---|
+| `signalReady()` | Same as `ready={true}` prop, for non-React or imperative flows. |
+| `dismiss()` | Force-exit now (fires `onDismiss(currentScore)`). Use as a timeout fallback. |
+| `pause()` / `resume()` | Manual pause control (engine also auto-pauses on tab-hide and off-screen). |
+| `getScore()` | Read current score without subscribing to `onScore`. |
+| `getState()` | `'idle' \| 'running' \| 'paused' \| 'gameover'`. |
+| `isReady()` | Has `signalReady()` been called? |
+
+### Callback summary
+
+| Callback | Fires |
+|---|---|
+| `onScore(n)` | Every score change |
+| `onGameOver(n)` | When a life ends (player dies) |
+| `onReady()` | Once — when host signals ready (analytics hook) |
+| `onDismiss(n)` | When player taps post-gameover continue prompt, OR `engine.dismiss()` called |
+
 ## Structure plan
 
 Two distribution paths supported, **npm is the source of truth**:

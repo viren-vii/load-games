@@ -146,6 +146,8 @@ export class PongEngine extends BaseEngine {
     ctx.textAlign = 'left'
   }
 
+  getScore() { return this.score.player }
+
   destroy() {
     super.destroy()
     this.input.shouldPreventScroll = false

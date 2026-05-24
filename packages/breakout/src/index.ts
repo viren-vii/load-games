@@ -49,7 +49,11 @@ export class BreakoutEngine extends BaseEngine {
     this.input.on('arrowRight', () => { if (this.state === 'idle') { this.beginGame(); return }; this.paddle.vel = 1 })
     this.input.on('tap', () => {
       if (this.state === 'idle') { this.beginGame(); return }
-      if (this.state === 'gameover') { this.lives = 3; this.level = 1; this.score = 0; this.reset(); this.restartGame() }
+      if (this.state === 'gameover') {
+        this.tryGameOverRestart(() => {
+          this.lives = 3; this.level = 1; this.score = 0; this.reset(); this.restartGame()
+        })
+      }
     })
   }
 
@@ -194,6 +198,8 @@ export class BreakoutEngine extends BaseEngine {
 
     if (this.state === 'gameover') this.renderGameOver(`Score: ${this.score}`)
   }
+
+  getScore() { return this.score }
 
   destroy() {
     super.destroy()
