@@ -22,6 +22,7 @@ export class RunnerEngine extends BaseEngine {
   private onGround = false
   private obstacles: Obstacle[] = []
   private score = 0
+  private lastEmittedScore = 0
   private elapsed = 0
   private spawnTimer = 0
   private speed = 0
@@ -47,6 +48,7 @@ export class RunnerEngine extends BaseEngine {
     this.onGround = true
     this.obstacles = []
     this.score = 0
+    this.lastEmittedScore = 0
     this.elapsed = 0
     this.spawnTimer = 0
     this.speed = this.baseSpeed
@@ -99,7 +101,12 @@ export class RunnerEngine extends BaseEngine {
       }
     }
 
-    this.config.onScore?.(this.score)
+    // Score is derived from elapsed time (1 point / 100ms). Many frames between increments.
+    // Only fire callback on actual value change to avoid 60× per second React renders.
+    if (this.score !== this.lastEmittedScore) {
+      this.lastEmittedScore = this.score
+      this.config.onScore?.(this.score)
+    }
   }
 
   protected render() {

@@ -14,7 +14,7 @@ pnpm add @load-games/runner @load-games/core
 import { GameCanvas } from '@load-games/react'
 import { RunnerEngine } from '@load-games/runner'
 
-<GameCanvas createEngine={(c, cfg) => new RunnerEngine(c, cfg)} width={400} height={200} />
+<GameCanvas engine={RunnerEngine} width={400} height={200} />
 ```
 
 ## Controls

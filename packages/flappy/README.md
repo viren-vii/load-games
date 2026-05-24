@@ -14,7 +14,7 @@ pnpm add @load-games/flappy @load-games/core
 import { GameCanvas } from '@load-games/react'
 import { FlappyEngine } from '@load-games/flappy'
 
-<GameCanvas createEngine={(c, cfg) => new FlappyEngine(c, cfg)} width={320} height={320} />
+<GameCanvas engine={FlappyEngine} width={320} height={320} />
 ```
 
 ## Controls

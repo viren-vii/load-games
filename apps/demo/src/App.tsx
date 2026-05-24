@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { GameCanvas, type GameHandle } from '@load-games/react'
+import { useEffect, useRef, useState } from 'react'
+import { GameCanvas, type GameHandle, type EngineClass } from '@load-games/react'
 import { QrButton } from './QrButton'
 import { SnakeEngine } from '@load-games/snake'
 import { FlappyEngine } from '@load-games/flappy'
@@ -7,12 +7,10 @@ import { BreakoutEngine } from '@load-games/breakout'
 import { PongEngine } from '@load-games/pong'
 import { SpaceInvadersEngine } from '@load-games/space-invaders'
 import { RunnerEngine } from '@load-games/runner'
-import type { BaseEngine, GameConfig, GameTheme } from '@load-games/core'
+import type { GameTheme } from '@load-games/core'
 import { DEFAULT_THEME } from '@load-games/core'
 
 type GameId = 'snake' | 'flappy' | 'breakout' | 'pong' | 'space-invaders' | 'runner'
-
-type EngineFactory = (canvas: HTMLCanvasElement, config: GameConfig) => BaseEngine
 
 interface Config {
   width: number
@@ -28,13 +26,13 @@ const DEFAULTS: Config = {
   theme: { ...DEFAULT_THEME },
 }
 
-const GAME_META: Record<GameId, { label: string; controls: string; factory: EngineFactory }> = {
-  snake:          { label: 'Snake',          controls: 'Arrow keys / WASD / swipe',  factory: (c, cfg) => new SnakeEngine(c, cfg) },
-  flappy:         { label: 'Flappy',         controls: 'Space / tap / click',         factory: (c, cfg) => new FlappyEngine(c, cfg) },
-  breakout:       { label: 'Breakout',       controls: 'Mouse / Arrow keys',          factory: (c, cfg) => new BreakoutEngine(c, cfg) },
-  pong:           { label: 'Pong',           controls: 'Arrow Up / Down',             factory: (c, cfg) => new PongEngine(c, cfg) },
-  'space-invaders': { label: 'Space Invaders', controls: 'Arrows to move, Space to shoot', factory: (c, cfg) => new SpaceInvadersEngine(c, cfg) },
-  runner:         { label: 'Runner',         controls: 'Space / tap to jump',         factory: (c, cfg) => new RunnerEngine(c, cfg) },
+const GAME_META: Record<GameId, { label: string; controls: string; engine: EngineClass }> = {
+  snake:          { label: 'Snake',          controls: 'Arrow keys / WASD / swipe',  engine: SnakeEngine },
+  flappy:         { label: 'Flappy',         controls: 'Space / tap / click',         engine: FlappyEngine },
+  breakout:       { label: 'Breakout',       controls: 'Mouse / Arrow keys',          engine: BreakoutEngine },
+  pong:           { label: 'Pong',           controls: 'Arrow Up / Down / drag',      engine: PongEngine },
+  'space-invaders': { label: 'Space Invaders', controls: 'Arrows / drag to move, Space / tap to shoot', engine: SpaceInvadersEngine },
+  runner:         { label: 'Runner',         controls: 'Space / tap to jump',         engine: RunnerEngine },
 }
 
 export function App() {
@@ -49,11 +47,6 @@ export function App() {
 
   const log = (msg: string) =>
     setEvents(prev => [`${new Date().toLocaleTimeString()} ${msg}`, ...prev].slice(0, 10))
-
-  const createEngine = useCallback<EngineFactory>(
-    (canvas, config) => GAME_META[active]!.factory(canvas, config),
-    [active]
-  )
 
   const set = <K extends keyof Config>(key: K, val: Config[K]) =>
     setCfg(prev => ({ ...prev, [key]: val }))
@@ -106,8 +99,9 @@ export function App() {
             {mounted
               ? <GameCanvas
                   ref={gameRef}
-                  key={JSON.stringify({ active, cfg })}
-                  createEngine={createEngine}
+                  // Remount only when game or config changes — engine captures config at mount.
+                  key={`${active}|${cfg.width}|${cfg.height}|${cfg.speed}|${cfg.theme.bg}|${cfg.theme.primary}|${cfg.theme.accent}|${cfg.theme.text}`}
+                  engine={GAME_META[active]!.engine}
                   width={cfg.width}
                   height={cfg.height}
                   speed={cfg.speed}

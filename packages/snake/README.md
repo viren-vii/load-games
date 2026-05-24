@@ -16,7 +16,7 @@ import { GameCanvas } from '@load-games/react'
 import { SnakeEngine } from '@load-games/snake'
 
 <GameCanvas
-  createEngine={(c, cfg) => new SnakeEngine(c, cfg)}
+  engine={SnakeEngine}
   width={320} height={320} speed={5}
   onScore={n => console.log(n)}
 />

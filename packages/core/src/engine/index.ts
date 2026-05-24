@@ -144,6 +144,10 @@ export abstract class BaseEngine {
     ctx.textAlign = 'left'
   }
 
+  private static readonly READY_LABEL = '● READY'
+  private static readonly READY_FONT = 'bold 10px monospace'
+  private readyTextW = 0 // cached after first measure; text + font are constant
+
   /** Top-right badge shown during play once ready has been signalled. */
   protected renderReadyBadge() {
     if (!this._ready) return
@@ -151,12 +155,11 @@ export abstract class BaseEngine {
     const w = this.width
     const alpha = 0.55 + 0.45 * Math.sin(Date.now() / 350)
     const alphaHex = Math.round(alpha * 255).toString(16).padStart(2, '0')
-    ctx.font = 'bold 10px monospace'
+    ctx.font = BaseEngine.READY_FONT
     ctx.textAlign = 'right'
-    const label = '● READY'
+    if (!this.readyTextW) this.readyTextW = ctx.measureText(BaseEngine.READY_LABEL).width
     const padX = 6, padY = 4
-    const textW = ctx.measureText(label).width
-    const boxW = textW + padX * 2
+    const boxW = this.readyTextW + padX * 2
     const boxH = 16
     const x = w - 6 - boxW
     const y = 6
@@ -166,7 +169,7 @@ export abstract class BaseEngine {
     ctx.lineWidth = 1
     ctx.strokeRect(x + 0.5, y + 0.5, boxW - 1, boxH - 1)
     ctx.fillStyle = theme.accent + alphaHex
-    ctx.fillText(label, w - 6 - padX, y + boxH - padY - 1)
+    ctx.fillText(BaseEngine.READY_LABEL, w - 6 - padX, y + boxH - padY - 1)
     ctx.textAlign = 'left'
   }
 

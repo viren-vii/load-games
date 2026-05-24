@@ -85,10 +85,17 @@ export class SpaceInvadersEngine extends BaseEngine {
     this.shootCooldown = 350
   }
 
-  private enemyShoot(alive: Invader[]) {
-    if (!alive.length) return
-    const shooter = alive[Math.floor(Math.random() * alive.length)]!
-    this.bullets.push({ x: shooter.x + INV_W / 2, y: shooter.y + INV_H, dir: 1 })
+  private enemyShootRandom() {
+    // Reservoir-sample one alive invader in a single pass — no filter allocation.
+    let chosen: Invader | null = null
+    let aliveCount = 0
+    for (const inv of this.invaders) {
+      if (!inv.alive) continue
+      aliveCount++
+      if (Math.random() < 1 / aliveCount) chosen = inv
+    }
+    if (!chosen) return
+    this.bullets.push({ x: chosen.x + INV_W / 2, y: chosen.y + INV_H, dir: 1 })
   }
 
   protected update(dt: number) {
@@ -96,7 +103,6 @@ export class SpaceInvadersEngine extends BaseEngine {
     this.input.shouldPreventScroll = true
     const dtSec = dt / 1000
     const h = this.height
-    const alive = this.invaders.filter(i => i.alive)
 
     if (this.pointerX !== null) {
       // Pointer drag (mouse / touch / pen) directly positions the ship — primary mobile control.
@@ -110,22 +116,36 @@ export class SpaceInvadersEngine extends BaseEngine {
     this.enemyShootTimer -= dt
     if (this.enemyShootTimer <= 0) {
       this.enemyShootTimer = Math.max(600, 2200 - this.clampedSpeed * 150)
-      this.enemyShoot(alive)
+      this.enemyShootRandom()
     }
 
-    const moveInterval = Math.max(80, (800 - (this.clampedSpeed - 1) * 60) - (INVADER_COLS * INVADER_ROWS - alive.length) * 12)
+    // Single-pass scan: count alive, find edge violation, find ship-reach. No allocations.
+    let aliveCount = 0
+    let hitEdgeLeft = false, hitEdgeRight = false
+    let shipReached = false
+    const stepXPreview = 8 * this.invDir
+    const reachY = h - PLAYER_H - 20
+    for (const inv of this.invaders) {
+      if (!inv.alive) continue
+      aliveCount++
+      if (inv.x + stepXPreview < 0) hitEdgeLeft = true
+      if (inv.x + INV_W + stepXPreview > this.width) hitEdgeRight = true
+      if (inv.y + INV_H >= reachY) shipReached = true
+    }
+    const hitEdge = hitEdgeLeft || hitEdgeRight
+
+    const moveInterval = Math.max(80, (800 - (this.clampedSpeed - 1) * 60) - (INVADER_COLS * INVADER_ROWS - aliveCount) * 12)
     this.invMoveTimer += dt
     if (this.invMoveTimer >= moveInterval) {
       this.invMoveTimer = 0
       const stepX = 8 * this.invDir
-      const hitEdge = alive.some(inv => inv.x + stepX < 0 || inv.x + INV_W + stepX > this.width)
       if (hitEdge) {
         this.invDir *= -1
         for (const inv of this.invaders) inv.y += INV_H + 4
       } else {
         for (const inv of this.invaders) inv.x += stepX
       }
-      if (alive.some(inv => inv.y + INV_H >= h - PLAYER_H - 20)) { this.endGame(); return }
+      if (shipReached) { this.endGame(); return }
     }
 
     const BULLET_SPEED = 280
@@ -153,7 +173,7 @@ export class SpaceInvadersEngine extends BaseEngine {
       }
     }
 
-    if (!this.invaders.some(i => i.alive)) { this.wave++; this.init() }
+    if (aliveCount === 0) { this.wave++; this.init() }
   }
 
   private endGame() {

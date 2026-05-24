@@ -14,7 +14,7 @@ pnpm add @load-games/space-invaders @load-games/core
 import { GameCanvas } from '@load-games/react'
 import { SpaceInvadersEngine } from '@load-games/space-invaders'
 
-<GameCanvas createEngine={(c, cfg) => new SpaceInvadersEngine(c, cfg)} width={320} height={320} />
+<GameCanvas engine={SpaceInvadersEngine} width={320} height={320} />
 ```
 
 ## Controls

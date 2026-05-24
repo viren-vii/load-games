@@ -14,7 +14,7 @@ pnpm add @load-games/breakout @load-games/core
 import { GameCanvas } from '@load-games/react'
 import { BreakoutEngine } from '@load-games/breakout'
 
-<GameCanvas createEngine={(c, cfg) => new BreakoutEngine(c, cfg)} width={320} height={320} />
+<GameCanvas engine={BreakoutEngine} width={320} height={320} />
 ```
 
 ## Controls

@@ -32,7 +32,7 @@ import { SnakeEngine } from '@load-games/snake'
 export function Loader() {
   return (
     <GameCanvas
-      createEngine={(canvas, cfg) => new SnakeEngine(canvas, cfg)}
+      engine={SnakeEngine}
       width={320}
       height={320}
       speed={5}
@@ -91,7 +91,7 @@ function AskAI({ prompt }: { prompt: string }) {
   return (
     <GameCanvas
       ref={gameRef}
-      createEngine={(c, cfg) => new SnakeEngine(c, cfg)}
+      engine={SnakeEngine}
       width={320} height={320}
       ready={response !== null}                  // ← declarative signal
       onDismiss={(finalScore) => {
@@ -118,10 +118,41 @@ function AskAI({ prompt }: { prompt: string }) {
 
 | Callback | Fires |
 |---|---|
-| `onScore(n)` | Every score change |
+| `onScore(n)` | Every score change (de-duplicated — won't fire if value unchanged) |
 | `onGameOver(n)` | When a life ends (player dies) |
 | `onReady()` | Once — when host signals ready (analytics hook) |
 | `onDismiss(n)` | When player taps post-gameover continue prompt, OR `engine.dismiss()` called |
+
+Inline callbacks are safe — the wrapper captures the latest via ref each render, so writing `onScore={n => setScore(n)}` directly does **not** recreate the engine.
+
+## Behavior contract
+
+- **Engine config is captured on mount.** Changing `width` / `height` / `speed` / `theme` after mount does **not** reinitialise the game (would interrupt play). To apply new config, force a remount via React `key`.
+- **Engine instance is stable across renders.** Only the `engine` class prop being a different reference triggers reinit.
+- **Lifecycle is bidirectional.** Engine auto-pauses on tab hide and when canvas scrolls off-screen, then auto-resumes when visible again.
+
+## SSR (Next.js / Remix)
+
+`<GameCanvas/>` is client-only (marked `'use client'`). All canvas work runs inside `useEffect`, so importing it from a server component is fine if the consumer file is also `'use client'`. From a pure server component, use a dynamic import:
+
+```tsx
+import dynamic from 'next/dynamic'
+const Loader = dynamic(() => import('./Loader'), { ssr: false })
+```
+
+Engine classes themselves (`SnakeEngine` etc.) never reference `window` at module scope — only inside the constructor, which only runs once a canvas exists. Importing the class on the server is harmless.
+
+## Sizing
+
+The canvas reads `width` / `height` from `GameConfig` if set, otherwise from `getBoundingClientRect()` at mount, falling back to 300×300. There is no `ResizeObserver` — if the container resizes after mount, the canvas stays at its mounted size. For a responsive game, watch your container's size in React and bump a `key` prop to remount the canvas at the new dimensions.
+
+## Performance
+
+- Single `requestAnimationFrame` loop per engine, capped at 100ms `dt` to survive tab resumes.
+- All engines use single-pass scans — no per-frame array allocations (`.filter()` / `.map()` etc.).
+- `onScore` fires only on actual change, never per-frame.
+- Canvas is DPR-aware: backing store scaled by `devicePixelRatio` for crisp pixels on retina.
+- Per-package bundle size is ~1–2 KB gzip (core: ~3 KB). All packages have `sideEffects: false` for tree-shaking.
 
 ## Structure plan
 

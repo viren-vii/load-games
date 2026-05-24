@@ -18,8 +18,17 @@ export interface GameHandle {
   isReady(): boolean
 }
 
+/** Constructor signature any load-games engine class satisfies. */
+export type EngineClass = new (canvas: HTMLCanvasElement, config: GameConfig) => BaseEngine
+
 interface GameCanvasProps extends GameConfig {
-  createEngine: (canvas: HTMLCanvasElement, config: GameConfig) => BaseEngine
+  /**
+   * The engine class to instantiate. Pass the class itself (not an instance):
+   * `<GameCanvas engine={SnakeEngine} />`.
+   * Changing this prop remounts the engine. All other config props (width, theme, etc.)
+   * are captured on mount — change them by remounting via React `key`.
+   */
+  engine: EngineClass
   /**
    * Declarative ready signal. When flipped true, calls `engine.signalReady()`.
    * The engine will offer "tap to continue" at the next game-over and fire `onDismiss`.
@@ -30,22 +39,25 @@ interface GameCanvasProps extends GameConfig {
 }
 
 export const GameCanvas = forwardRef<GameHandle, GameCanvasProps>(function GameCanvas(
-  { createEngine, ready, className, style, ...config },
+  { engine: EngineClass, ready, className, style, ...config },
   ref
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const engineRef = useRef<BaseEngine | null>(null)
 
+  // Capture latest callbacks/config in a ref so the mount effect doesn't reinit
+  // when consumers pass inline arrow callbacks (a common React footgun).
+  const configRef = useRef(config)
+  configRef.current = config
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const engine = createEngine(canvas, config)
+    const engine = new EngineClass(canvas, configRef.current)
     engineRef.current = engine
     engine.start()
     return () => { engineRef.current = null; engine.destroy() }
-    // config intentionally excluded — engine owns its state after mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [createEngine])
+  }, [EngineClass])
 
   useEffect(() => {
     if (ready) engineRef.current?.signalReady()

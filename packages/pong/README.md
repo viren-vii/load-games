@@ -14,7 +14,7 @@ pnpm add @load-games/pong @load-games/core
 import { GameCanvas } from '@load-games/react'
 import { PongEngine } from '@load-games/pong'
 
-<GameCanvas createEngine={(c, cfg) => new PongEngine(c, cfg)} width={400} height={240} />
+<GameCanvas engine={PongEngine} width={400} height={240} />
 ```
 
 ## Controls
