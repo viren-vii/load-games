@@ -1,11 +1,20 @@
 {
   "name": "@load-games/react",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "React <GameCanvas/> wrapper for load-games engines.",
-  "keywords": ["react", "game", "canvas", "load-games"],
+  "keywords": [
+    "react",
+    "game",
+    "canvas",
+    "load-games"
+  ],
   "author": "Viren Bhosale <virubhosale112@gmail.com>",
   "license": "MIT",
-  "repository": { "type": "git", "url": "git+https://github.com/viren-vii/load-games.git", "directory": "packages/react" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/viren-vii/load-games.git",
+    "directory": "packages/react"
+  },
   "homepage": "https://github.com/viren-vii/load-games/tree/main/packages/react",
   "bugs": "https://github.com/viren-vii/load-games/issues",
   "type": "module",
@@ -20,8 +29,13 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist", "README.md"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
