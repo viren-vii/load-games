@@ -21,10 +21,11 @@ import { PongEngine } from '@load-games/pong'
 
 | Input | Action |
 |---|---|
-| Mouse / pointer Y | Move your paddle |
+| Mouse / drag (touch) | Move your paddle |
 | Arrow Up / Down | Move your paddle |
+| Tap | Restart after match end |
 
-You play the left paddle. No win condition — endless rally with growing ball speed.
+You play the left paddle. **First to 5 wins.** Ball speed grows after each paddle hit.
 
 ## License
 

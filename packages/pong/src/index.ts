@@ -6,13 +6,14 @@ const PADDLE_H = 55
 const BALL_SIZE = 8
 const MARGIN = 12
 const PLAYER_SPEED = 320
+const WIN_SCORE = 5
 
 export class PongEngine extends BaseEngine {
   protected readonly gameName = 'Pong'
   protected readonly controlHints = [
-    'Move mouse — control your paddle',
+    'Move mouse / drag — control your paddle',
     'Arrow keys ↑ ↓ — move paddle',
-    'You are the left paddle',
+    `First to ${WIN_SCORE} wins`,
   ]
 
   private player = { y: 0 }
@@ -38,7 +39,12 @@ export class PongEngine extends BaseEngine {
     this.input = new InputManager(canvas)
     this.input.on('arrowUp',   () => { if (this.state === 'idle') this.beginGame() })
     this.input.on('arrowDown', () => { if (this.state === 'idle') this.beginGame() })
-    this.input.on('tap',       () => { if (this.state === 'idle') this.beginGame() })
+    this.input.on('tap',       () => {
+      if (this.state === 'idle') { this.beginGame(); return }
+      if (this.state === 'gameover') {
+        this.tryGameOverRestart(() => { this.score = { player: 0, ai: 0 }; this.reset(); this.restartGame() })
+      }
+    })
     canvas.addEventListener('pointermove', this.onPointerMove)
     canvas.addEventListener('pointerleave', this.onPointerLeave)
     this.reset()
@@ -101,8 +107,22 @@ export class PongEngine extends BaseEngine {
       this.ball.x = aiX - BALL_SIZE / 2
     }
 
-    if (this.ball.x < 0) { this.score.ai++; this.config.onScore?.(this.score.player); this.reset(-1) }
-    else if (this.ball.x > w) { this.score.player++; this.config.onScore?.(this.score.player); this.reset(1) }
+    if (this.ball.x < 0) {
+      this.score.ai++; this.config.onScore?.(this.score.player)
+      if (this.score.ai >= WIN_SCORE) { this.endMatch(); return }
+      this.reset(-1)
+    } else if (this.ball.x > w) {
+      this.score.player++; this.config.onScore?.(this.score.player)
+      if (this.score.player >= WIN_SCORE) { this.endMatch(); return }
+      this.reset(1)
+    }
+  }
+
+  private endMatch() {
+    this.setState('gameover')
+    this.loop.stop()
+    this.input.shouldPreventScroll = false
+    this.config.onGameOver?.(this.score.player)
   }
 
   protected render() {
@@ -141,9 +161,14 @@ export class PongEngine extends BaseEngine {
     if (this.pointerY === null) {
       ctx.textAlign = 'center'
       ctx.fillStyle = theme.text + '33'
-      ctx.fillText('move mouse or ↑ ↓', w / 2, h - 8)
+      ctx.fillText('move mouse / drag or ↑ ↓', w / 2, h - 8)
     }
     ctx.textAlign = 'left'
+
+    if (this.state === 'gameover') {
+      const winner = this.score.player > this.score.ai ? 'YOU WIN' : 'AI WINS'
+      this.renderGameOver(`${winner}  ${this.score.player}–${this.score.ai}`)
+    }
   }
 
   getScore() { return this.score.player }

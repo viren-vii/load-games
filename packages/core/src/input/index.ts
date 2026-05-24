@@ -25,9 +25,11 @@ function keyToEvent(key: string): InputEvent | null {
 export class InputManager {
   private handlers = new Map<InputEvent, Set<Handler>>()
   private held = new Set<InputEvent>()
-  private touchStartX = 0
-  private touchStartY = 0
   private readonly swipeThreshold = 30
+
+  private pointerStartX = 0
+  private pointerStartY = 0
+  private trackingPointerId: number | null = null
 
   // Set this to true only while game is running so arrow keys don't block
   // page scroll when game is idle/paused/gameover.
@@ -77,18 +79,21 @@ export class InputManager {
     if (event) this.held.delete(event)
   }
 
-  private onTouchStart = (e: TouchEvent) => {
-    const t = e.touches[0]
-    if (!t) return
-    this.touchStartX = t.clientX
-    this.touchStartY = t.clientY
+  private onPointerDown = (e: PointerEvent) => {
+    this.pointerStartX = e.clientX
+    this.pointerStartY = e.clientY
+    this.trackingPointerId = e.pointerId
+    // Capture so we still get pointerup even if finger leaves the canvas.
+    try { this.canvas.setPointerCapture?.(e.pointerId) } catch { /* ignore */ }
   }
 
-  private onTouchEnd = (e: TouchEvent) => {
-    const t = e.changedTouches[0]
-    if (!t) return
-    const dx = t.clientX - this.touchStartX
-    const dy = t.clientY - this.touchStartY
+  private onPointerUp = (e: PointerEvent) => {
+    if (this.trackingPointerId !== e.pointerId) return
+    this.trackingPointerId = null
+    try { this.canvas.releasePointerCapture?.(e.pointerId) } catch { /* ignore */ }
+
+    const dx = e.clientX - this.pointerStartX
+    const dy = e.clientY - this.pointerStartY
     const absDx = Math.abs(dx)
     const absDy = Math.abs(dy)
 
@@ -104,23 +109,25 @@ export class InputManager {
     }
   }
 
-  private onCanvasClick = () => {
-    this.emit('tap')
+  private onPointerCancel = (e: PointerEvent) => {
+    if (this.trackingPointerId !== e.pointerId) return
+    this.trackingPointerId = null
+    try { this.canvas.releasePointerCapture?.(e.pointerId) } catch { /* ignore */ }
   }
 
   private attach() {
     this.canvas.addEventListener('keydown', this.onKeyDown)
     this.canvas.addEventListener('keyup', this.onKeyUp)
-    this.canvas.addEventListener('touchstart', this.onTouchStart, { passive: true })
-    this.canvas.addEventListener('touchend', this.onTouchEnd)
-    this.canvas.addEventListener('click', this.onCanvasClick)
+    this.canvas.addEventListener('pointerdown', this.onPointerDown)
+    this.canvas.addEventListener('pointerup', this.onPointerUp)
+    this.canvas.addEventListener('pointercancel', this.onPointerCancel)
   }
 
   private detach() {
     this.canvas.removeEventListener('keydown', this.onKeyDown)
     this.canvas.removeEventListener('keyup', this.onKeyUp)
-    this.canvas.removeEventListener('touchstart', this.onTouchStart)
-    this.canvas.removeEventListener('touchend', this.onTouchEnd)
-    this.canvas.removeEventListener('click', this.onCanvasClick)
+    this.canvas.removeEventListener('pointerdown', this.onPointerDown)
+    this.canvas.removeEventListener('pointerup', this.onPointerUp)
+    this.canvas.removeEventListener('pointercancel', this.onPointerCancel)
   }
 }

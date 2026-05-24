@@ -19,7 +19,7 @@ interface Bullet { x: number; y: number; dir: 1 | -1 }
 export class SpaceInvadersEngine extends BaseEngine {
   protected readonly gameName = 'Space Invaders'
   protected readonly controlHints = [
-    'Arrow keys ← → — move ship',
+    'Arrow keys ← → or drag — move ship',
     'Space / Tap — shoot',
     'Shoot all invaders to advance',
   ]
@@ -34,7 +34,14 @@ export class SpaceInvadersEngine extends BaseEngine {
   private invMoveTimer = 0
   private enemyShootTimer = 0
   private readonly input: InputManager
+  private pointerX: number | null = null
 
+  private onPointerMove = (e: PointerEvent) => {
+    const rect = this.canvas.getBoundingClientRect()
+    this.pointerX = e.clientX - rect.left
+    if (this.state === 'idle') this.beginGame()
+  }
+  private onPointerLeave = () => { this.pointerX = null }
 
   constructor(canvas: HTMLCanvasElement, config: GameConfig = {}) {
     super(canvas, config)
@@ -49,6 +56,8 @@ export class SpaceInvadersEngine extends BaseEngine {
     })
     this.input.on('arrowLeft',  () => { if (this.state === 'idle') this.beginGame() })
     this.input.on('arrowRight', () => { if (this.state === 'idle') this.beginGame() })
+    canvas.addEventListener('pointermove', this.onPointerMove)
+    canvas.addEventListener('pointerleave', this.onPointerLeave)
     this.init()
   }
 
@@ -89,8 +98,13 @@ export class SpaceInvadersEngine extends BaseEngine {
     const h = this.height
     const alive = this.invaders.filter(i => i.alive)
 
-    if (this.input.isDown('arrowLeft'))  this.playerX = Math.max(0, this.playerX - PLAYER_SPEED * dtSec)
-    if (this.input.isDown('arrowRight')) this.playerX = Math.min(this.width - PLAYER_W, this.playerX + PLAYER_SPEED * dtSec)
+    if (this.pointerX !== null) {
+      // Pointer drag (mouse / touch / pen) directly positions the ship — primary mobile control.
+      this.playerX = Math.max(0, Math.min(this.width - PLAYER_W, this.pointerX - PLAYER_W / 2))
+    } else {
+      if (this.input.isDown('arrowLeft'))  this.playerX = Math.max(0, this.playerX - PLAYER_SPEED * dtSec)
+      if (this.input.isDown('arrowRight')) this.playerX = Math.min(this.width - PLAYER_W, this.playerX + PLAYER_SPEED * dtSec)
+    }
 
     this.shootCooldown = Math.max(0, this.shootCooldown - dt)
     this.enemyShootTimer -= dt
@@ -194,5 +208,7 @@ export class SpaceInvadersEngine extends BaseEngine {
     super.destroy()
     this.input.shouldPreventScroll = false
     this.input.destroy()
+    this.canvas.removeEventListener('pointermove', this.onPointerMove)
+    this.canvas.removeEventListener('pointerleave', this.onPointerLeave)
   }
 }

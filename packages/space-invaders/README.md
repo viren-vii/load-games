@@ -22,6 +22,7 @@ import { SpaceInvadersEngine } from '@load-games/space-invaders'
 | Input | Action |
 |---|---|
 | Arrow Left / Right | Move ship |
+| Drag (mouse / touch) | Move ship directly |
 | Space / Tap | Shoot |
 
 Clear a wave to advance. Invaders reach you OR a bullet hits ship = game over.

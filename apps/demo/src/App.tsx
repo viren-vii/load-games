@@ -254,9 +254,9 @@ const s = {
   },
   tabActive: { borderColor: '#22c55e', color: '#22c55e' },
   body: { display: 'flex', gap: 32, flexWrap: 'wrap' as const, alignItems: 'flex-start' },
-  canvasCol: { display: 'flex', flexDirection: 'column' as const, gap: 8 },
-  canvasWrap: { border: '1px solid #222', borderRadius: 4, overflow: 'hidden', display: 'inline-block' },
-  canvas: { display: 'block' },
+  canvasCol: { display: 'flex', flexDirection: 'column' as const, gap: 8, maxWidth: '100%' },
+  canvasWrap: { border: '1px solid #222', borderRadius: 4, overflow: 'hidden', display: 'inline-block', maxWidth: '100%' },
+  canvas: { display: 'block', maxWidth: '100%' },
   dismissedScreen: {
     display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center',
     background: '#0a0a0a', color: '#22c55e', fontFamily: 'monospace', gap: 12,

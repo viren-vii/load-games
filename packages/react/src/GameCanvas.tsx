@@ -65,10 +65,27 @@ export const GameCanvas = forwardRef<GameHandle, GameCanvasProps>(function GameC
     <canvas
       ref={canvasRef}
       className={className}
-      style={style}
+      style={{ ...CANVAS_BASE_STYLE, ...style }}
       tabIndex={0}
       role="application"
       aria-label="Interactive game loader. Use arrow keys or tap to play."
     />
   )
 })
+
+// Mobile / cross-browser hardening:
+// - touchAction:none → swipes never scroll/zoom the page; required for snake.
+// - userSelect:none + touchCallout:none → no text-selection or iOS context menu on long-press.
+// - tapHighlightColor:transparent → no blue flash on every iOS tap.
+// - outline:none → no focus ring when canvas receives keyboard focus.
+// - maxWidth:100% → canvas shrinks to fit narrow viewports; intrinsic width keeps the layout.
+const CANVAS_BASE_STYLE: React.CSSProperties = {
+  display: 'block',
+  touchAction: 'none',
+  userSelect: 'none',
+  WebkitUserSelect: 'none',
+  WebkitTouchCallout: 'none',
+  WebkitTapHighlightColor: 'transparent',
+  outline: 'none',
+  maxWidth: '100%',
+}

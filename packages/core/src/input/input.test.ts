@@ -11,6 +11,8 @@ function makeCanvas() {
     removeEventListener(type: string, fn: EventListener) {
       listeners.set(type, (listeners.get(type) ?? []).filter(l => l !== fn))
     },
+    setPointerCapture: vi.fn(),
+    releasePointerCapture: vi.fn(),
     dispatch(type: string, ev: any) {
       ;(listeners.get(type) ?? []).forEach(fn => fn(ev))
     },
@@ -18,7 +20,7 @@ function makeCanvas() {
   return canvas
 }
 
-describe('InputManager', () => {
+describe('InputManager — keyboard', () => {
   let canvas: ReturnType<typeof makeCanvas>
   beforeEach(() => { canvas = makeCanvas() })
 
@@ -73,23 +75,64 @@ describe('InputManager', () => {
     canvas.dispatch('keydown', { key: 'ArrowUp', preventDefault: pd })
     expect(pd).toHaveBeenCalledOnce()
   })
+})
 
-  it('horizontal swipe emits left/right based on direction', () => {
+describe('InputManager — pointer (mouse / touch / pen unified)', () => {
+  let canvas: ReturnType<typeof makeCanvas>
+  beforeEach(() => { canvas = makeCanvas() })
+
+  it('short pointer movement emits tap (single fire, no double-tap)', () => {
+    const im = new InputManager(canvas)
+    const tap = vi.fn()
+    im.on('tap', tap)
+    canvas.dispatch('pointerdown', { pointerId: 1, clientX: 100, clientY: 100 })
+    canvas.dispatch('pointerup',   { pointerId: 1, clientX: 105, clientY: 102 })
+    expect(tap).toHaveBeenCalledOnce()
+  })
+
+  it('horizontal swipe emits arrowLeft / arrowRight', () => {
     const im = new InputManager(canvas)
     const left = vi.fn(), right = vi.fn()
     im.on('arrowLeft', left); im.on('arrowRight', right)
-    canvas.dispatch('touchstart', { touches: [{ clientX: 100, clientY: 50 }] })
-    canvas.dispatch('touchend', { changedTouches: [{ clientX: 30, clientY: 55 }] })
+    canvas.dispatch('pointerdown', { pointerId: 1, clientX: 100, clientY: 50 })
+    canvas.dispatch('pointerup',   { pointerId: 1, clientX: 30,  clientY: 55 })
     expect(left).toHaveBeenCalledOnce()
     expect(right).not.toHaveBeenCalled()
   })
 
-  it('short touch emits tap', () => {
+  it('vertical swipe emits arrowUp / arrowDown', () => {
+    const im = new InputManager(canvas)
+    const up = vi.fn(), down = vi.fn()
+    im.on('arrowUp', up); im.on('arrowDown', down)
+    canvas.dispatch('pointerdown', { pointerId: 1, clientX: 50, clientY: 100 })
+    canvas.dispatch('pointerup',   { pointerId: 1, clientX: 55, clientY: 200 })
+    expect(down).toHaveBeenCalledOnce()
+    expect(up).not.toHaveBeenCalled()
+  })
+
+  it('pointerup from a different pointerId is ignored (multi-touch safety)', () => {
     const im = new InputManager(canvas)
     const tap = vi.fn()
     im.on('tap', tap)
-    canvas.dispatch('touchstart', { touches: [{ clientX: 100, clientY: 100 }] })
-    canvas.dispatch('touchend', { changedTouches: [{ clientX: 105, clientY: 102 }] })
-    expect(tap).toHaveBeenCalledOnce()
+    canvas.dispatch('pointerdown', { pointerId: 1, clientX: 100, clientY: 100 })
+    canvas.dispatch('pointerup',   { pointerId: 2, clientX: 100, clientY: 100 })
+    expect(tap).not.toHaveBeenCalled()
+  })
+
+  it('captures pointer on pointerdown so dragging off-canvas still completes', () => {
+    const im = new InputManager(canvas)
+    canvas.dispatch('pointerdown', { pointerId: 7, clientX: 100, clientY: 100 })
+    expect((canvas as any).setPointerCapture).toHaveBeenCalledWith(7)
+  })
+
+  it('pointercancel cleans up tracking without emitting', () => {
+    const im = new InputManager(canvas)
+    const tap = vi.fn(), left = vi.fn()
+    im.on('tap', tap); im.on('arrowLeft', left)
+    canvas.dispatch('pointerdown', { pointerId: 1, clientX: 100, clientY: 100 })
+    canvas.dispatch('pointercancel', { pointerId: 1, clientX: 30, clientY: 100 })
+    canvas.dispatch('pointerup',   { pointerId: 1, clientX: 30, clientY: 100 })
+    expect(tap).not.toHaveBeenCalled()
+    expect(left).not.toHaveBeenCalled()
   })
 })
