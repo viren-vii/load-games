@@ -10,18 +10,20 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@load-games/core": "workspace:*",
-    "@load-games/react": "workspace:*",
-    "@load-games/snake": "workspace:*",
-    "@load-games/flappy": "workspace:*",
     "@load-games/breakout": "workspace:*",
+    "@load-games/core": "workspace:*",
+    "@load-games/flappy": "workspace:*",
     "@load-games/pong": "workspace:*",
-    "@load-games/space-invaders": "workspace:*",
+    "@load-games/react": "workspace:*",
     "@load-games/runner": "workspace:*",
+    "@load-games/snake": "workspace:*",
+    "@load-games/space-invaders": "workspace:*",
+    "qrcode": "^1.5.4",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
   "devDependencies": {
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
     "@vitejs/plugin-react": "^4.0.0",

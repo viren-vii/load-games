@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { GameCanvas } from '@load-games/react'
+import { QrButton } from './QrButton'
 import { SnakeEngine } from '@load-games/snake'
 import { FlappyEngine } from '@load-games/flappy'
 import { BreakoutEngine } from '@load-games/breakout'
@@ -63,6 +64,7 @@ export function App() {
     <div style={s.root}>
       <header style={s.header}>
         <h1 style={s.title}>load-games</h1>
+        <QrButton />
       </header>
 
       <div style={s.tabs}>
@@ -173,7 +175,7 @@ function ColorRow({ label, value, onChange }: {
 
 const s = {
   root: { fontFamily: 'monospace', color: '#fff', minHeight: '100dvh', padding: '24px 16px' },
-  header: { marginBottom: 16 },
+  header: { marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' as const },
   title: { fontSize: 20, letterSpacing: 2 },
   tabs: { display: 'flex', gap: 6, flexWrap: 'wrap' as const, marginBottom: 20 },
   tab: {
