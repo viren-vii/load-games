@@ -1,0 +1,45 @@
+{
+  "name": "@load-games/react",
+  "version": "0.0.1",
+  "description": "React <GameCanvas/> wrapper for load-games engines.",
+  "keywords": ["react", "game", "canvas", "load-games"],
+  "author": "Viren Bhosale <virubhosale112@gmail.com>",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/virenbhosale/load-games.git", "directory": "packages/react" },
+  "homepage": "https://github.com/virenbhosale/load-games/tree/main/packages/react",
+  "bugs": "https://github.com/virenbhosale/load-games/issues",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "publishConfig": { "access": "public" },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "@load-games/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "react": "^18.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  }
+}

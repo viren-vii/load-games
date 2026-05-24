@@ -1,0 +1,40 @@
+{
+  "name": "@load-games/snake",
+  "version": "0.0.1",
+  "description": "Snake game engine for load-games. Canvas-based, framework-agnostic.",
+  "keywords": ["game", "snake", "canvas", "load-games"],
+  "author": "Viren Bhosale <virubhosale112@gmail.com>",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/virenbhosale/load-games.git", "directory": "packages/snake" },
+  "homepage": "https://github.com/virenbhosale/load-games/tree/main/packages/snake",
+  "bugs": "https://github.com/virenbhosale/load-games/issues",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "publishConfig": { "access": "public" },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@load-games/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}
