@@ -1,5 +1,37 @@
 # @load-games/pong
 
+## 0.2.1
+
+### Patch Changes
+
+- b09004f: Demo + docs polish (no API changes):
+
+  - **Demo: every prop editable** — full `GameConfig` surface exposed via the right-side controls panel. Sliders for width/height/speed, colour pickers for theme, text inputs for all 7 `labels` keys (i18n preview live), toggles for `returnButton` + `skipButton`, text input for `skipLabel`, select for `skipPosition`.
+  - **Demo: collapsible sections** — `Loading Simulator`, `Canvas / Gameplay`, `Theme`, `Labels`, `Behavior`, `Skip Button` each in a native `<details>` block.
+  - **Demo: deep-link via `?game=<id>`** — URL stays in sync with the active tab. Every per-package README's "Try it live" link uses this query so users land on the right game.
+  - **SEO**: `apps/demo/index.html` now has `<title>` + meta description, Open Graph tags, Twitter card, theme-color, canonical URL, JSON-LD `SoftwareApplication` schema, inline SVG favicon. OG image at `og-image.svg` (1200×630) ships in the deployed Pages build.
+  - **Per-package preview SVGs** — each of the 6 games has a hand-crafted `preview.svg` in its package folder, embedded in its README via the GitHub raw URL so the image renders both on GitHub and npmjs.com. Root README also shows a 6-tile gallery linking to the demo.
+  - **Root README** — top-of-page live demo + npm + license links; gallery of game previews each linking to the demo with the matching `?game=` query.
+
+- 892f416: Playability fixes at small canvas dimensions + demo polish + comprehensive prop docs.
+
+  **Flappy:** all physics now scale by `min(w,h) / 320`. Velocities, gravity, gap height, pipe width, bird size, pipe speed are all proportional to canvas dimensions. At 160×160 the game now feels identical to 320×320 instead of being unplayable. Bird also no longer dies on ceiling-touch — it clamps. Restart applies the same extra-tall first flap as the initial start (was missing).
+
+  **Space Invaders:** invader spacing adapts to canvas width so all 8 columns always fit on narrow canvases (squeezes padding down to 2px minimum). No more invader overflow.
+
+  **Runner:** obstacle speed now scales with canvas width. 100px/s at 160 wide, 200px/s at 320 wide — player reaction window stays consistent.
+
+  **Demo improvements:**
+
+  - Width / height / speed sliders no longer flicker the canvas while dragging. The applied config is debounced 250ms before re-keying `<LoadingGame/>`.
+  - Skip button no longer touches the canvas border. Border now sits on the canvas itself (not a wrapping div), so the button has clean space below.
+
+  **Docs:** README now has a complete prop reference table covering every `GameCanvas`, `LoadingGame`, `GameConfig`, `GameLabels`, and `GameHandle` field — including the `returnButton` config, all `DismissReason` values, and all `GameLabels` defaults.
+
+- Updated dependencies [b09004f]
+- Updated dependencies [892f416]
+  - @load-games/core@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
