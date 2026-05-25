@@ -1,6 +1,6 @@
 {
   "name": "@load-games/space-invaders",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Space Invaders game engine for load-games.",
   "keywords": [
     "game",
