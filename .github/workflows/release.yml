@@ -15,6 +15,8 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      # Required for npm Trusted Publishing (OIDC). No NPM_TOKEN needed; npm
+      # verifies the GitHub Actions identity via the configured trusted publisher.
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -28,6 +30,10 @@ jobs:
           node-version: 22
           cache: pnpm
           registry-url: https://registry.npmjs.org
+
+      # OIDC publishing requires npm >= 11.5.1. Node 22 ships with npm 10.x.
+      - name: Upgrade npm (for OIDC publish support)
+        run: npm install -g npm@latest
 
       - name: Install
         run: pnpm install --frozen-lockfile
@@ -47,5 +53,5 @@ jobs:
           title: "chore(release): version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # No NPM_TOKEN — auth happens via OIDC + npm Trusted Publisher configured
+          # on the @load-games org pointing at this workflow.
