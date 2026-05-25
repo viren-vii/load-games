@@ -42,10 +42,13 @@ export abstract class BaseEngine {
     this.intersectionObserver = new IntersectionObserver(
       ([entry]) => {
         if (!entry) return
-        if (entry.isIntersecting) { if (this._state === 'paused') this.resume() }
-        else { if (this._state === 'running') this.pause() }
+        if (entry.isIntersecting) {
+          if (this._state === 'paused') this.resume()
+        } else {
+          if (this._state === 'running') this.pause()
+        }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     )
     // Intercept clicks that land within the return-button area BEFORE the InputManager's
     // pointerup listener fires. Uses event.stopImmediatePropagation() to suppress the
@@ -79,8 +82,12 @@ export abstract class BaseEngine {
     canvas.addEventListener('keydown', this.onCanvasKeyDown, { capture: true })
   }
 
-  get state(): GameState { return this._state }
-  get ready(): boolean { return this._ready }
+  get state(): GameState {
+    return this._state
+  }
+  get ready(): boolean {
+    return this._ready
+  }
 
   /** Subclasses must report current score. Pong returns player score; others return their primary counter. */
   abstract getScore(): number
@@ -132,7 +139,9 @@ export abstract class BaseEngine {
    * Host force-dismiss. Equivalent to `dismissWith('forced')`. Idempotent.
    * The host should unmount the canvas in response to `onDismiss`. Does NOT call destroy.
    */
-  dismiss() { this.dismissWith('forced') }
+  dismiss() {
+    this.dismissWith('forced')
+  }
 
   /** Internal: dismiss with a specific reason. Public-but-protected by convention. */
   protected dismissWith(reason: DismissReason) {
@@ -149,7 +158,9 @@ export abstract class BaseEngine {
     this.canvas.removeEventListener('keydown', this.onCanvasKeyDown, { capture: true } as EventListenerOptions)
   }
 
-  protected setState(state: GameState) { this._state = state }
+  protected setState(state: GameState) {
+    this._state = state
+  }
 
   protected get clampedSpeed(): number {
     return Math.max(1, Math.min(10, this.config.speed ?? 5))
@@ -160,7 +171,10 @@ export abstract class BaseEngine {
    * If host has signalled ready, dismiss instead of restart. Otherwise run the supplied restart fn.
    */
   protected tryGameOverRestart(restart: () => void) {
-    if (this._ready) { this.dismissWith('gameover'); return }
+    if (this._ready) {
+      this.dismissWith('gameover')
+      return
+    }
     restart()
   }
 
@@ -177,7 +191,11 @@ export abstract class BaseEngine {
     ctx.font = '13px monospace'
     if (this._ready) {
       const alpha = 0.6 + 0.4 * Math.sin(Date.now() / 300)
-      ctx.fillStyle = theme.accent + Math.round(alpha * 255).toString(16).padStart(2, '0')
+      ctx.fillStyle =
+        theme.accent +
+        Math.round(alpha * 255)
+          .toString(16)
+          .padStart(2, '0')
       ctx.fillText(`${scoreText}  •  ${this.labels.tapContinue}`, w / 2, h / 2 + 14)
     } else {
       ctx.fillStyle = theme.text
@@ -199,7 +217,9 @@ export abstract class BaseEngine {
     const { ctx, theme } = this
     const w = this.width
     const alpha = 0.55 + 0.45 * Math.sin(Date.now() / 350)
-    const alphaHex = Math.round(alpha * 255).toString(16).padStart(2, '0')
+    const alphaHex = Math.round(alpha * 255)
+      .toString(16)
+      .padStart(2, '0')
     ctx.font = BaseEngine.BADGE_FONT
     ctx.textAlign = 'right'
     // Re-measure if label has changed (e.g., custom config.labels.readyBadge).
@@ -249,8 +269,12 @@ export abstract class BaseEngine {
     this.ctx.scale(dpr, dpr)
   }
 
-  protected get width() { return this.canvas.width / (window.devicePixelRatio || 1) }
-  protected get height() { return this.canvas.height / (window.devicePixelRatio || 1) }
+  protected get width() {
+    return this.canvas.width / (window.devicePixelRatio || 1)
+  }
+  protected get height() {
+    return this.canvas.height / (window.devicePixelRatio || 1)
+  }
 
   protected abstract update(dt: number): void
   protected abstract render(): void
@@ -272,7 +296,7 @@ export abstract class BaseEngine {
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(w / 4, h / 2 - 26)
-    ctx.lineTo(w * 3 / 4, h / 2 - 26)
+    ctx.lineTo((w * 3) / 4, h / 2 - 26)
     ctx.stroke()
 
     const hintSize = Math.max(10, Math.min(12, w / 28))
@@ -283,7 +307,11 @@ export abstract class BaseEngine {
     })
 
     const alpha = 0.5 + 0.5 * Math.sin(Date.now() / 400)
-    ctx.fillStyle = theme.accent + Math.round(alpha * 255).toString(16).padStart(2, '0')
+    ctx.fillStyle =
+      theme.accent +
+      Math.round(alpha * 255)
+        .toString(16)
+        .padStart(2, '0')
     ctx.font = `bold ${hintSize + 1}px monospace`
     // Swap prompt when host has already signalled ready — let the player exit without playing.
     const prompt = this._ready ? this.labels.idleReady : this.labels.idleStart
@@ -294,7 +322,10 @@ export abstract class BaseEngine {
   }
 
   private tick = (dt: number) => {
-    if (this._state === 'idle') { this.renderIdle(); return }
+    if (this._state === 'idle') {
+      this.renderIdle()
+      return
+    }
     this.update(dt)
     this.render()
     if (this._state === 'running') this.renderReadyBadge()

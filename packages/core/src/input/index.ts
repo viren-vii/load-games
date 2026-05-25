@@ -9,16 +9,26 @@ const SCROLL_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRig
 function keyToEvent(key: string): InputEvent | null {
   switch (key) {
     case ' ':
-    case 'Enter':      return 'tap'
+    case 'Enter':
+      return 'tap'
     case 'ArrowUp':
-    case 'w': case 'W': return 'arrowUp'
+    case 'w':
+    case 'W':
+      return 'arrowUp'
     case 'ArrowDown':
-    case 's': case 'S': return 'arrowDown'
+    case 's':
+    case 'S':
+      return 'arrowDown'
     case 'ArrowLeft':
-    case 'a': case 'A': return 'arrowLeft'
+    case 'a':
+    case 'A':
+      return 'arrowLeft'
     case 'ArrowRight':
-    case 'd': case 'D': return 'arrowRight'
-    default:           return null
+    case 'd':
+    case 'D':
+      return 'arrowRight'
+    default:
+      return null
   }
 }
 
@@ -60,7 +70,9 @@ export class InputManager {
   }
 
   private emit(event: InputEvent) {
-    this.handlers.get(event)?.forEach(h => h())
+    this.handlers.get(event)?.forEach(h => {
+      h()
+    })
   }
 
   private onKeyDown = (e: KeyboardEvent) => {
@@ -84,13 +96,21 @@ export class InputManager {
     this.pointerStartY = e.clientY
     this.trackingPointerId = e.pointerId
     // Capture so we still get pointerup even if finger leaves the canvas.
-    try { this.canvas.setPointerCapture?.(e.pointerId) } catch { /* ignore */ }
+    try {
+      this.canvas.setPointerCapture?.(e.pointerId)
+    } catch {
+      /* ignore */
+    }
   }
 
   private onPointerUp = (e: PointerEvent) => {
     if (this.trackingPointerId !== e.pointerId) return
     this.trackingPointerId = null
-    try { this.canvas.releasePointerCapture?.(e.pointerId) } catch { /* ignore */ }
+    try {
+      this.canvas.releasePointerCapture?.(e.pointerId)
+    } catch {
+      /* ignore */
+    }
 
     const dx = e.clientX - this.pointerStartX
     const dy = e.clientY - this.pointerStartY
@@ -112,7 +132,11 @@ export class InputManager {
   private onPointerCancel = (e: PointerEvent) => {
     if (this.trackingPointerId !== e.pointerId) return
     this.trackingPointerId = null
-    try { this.canvas.releasePointerCapture?.(e.pointerId) } catch { /* ignore */ }
+    try {
+      this.canvas.releasePointerCapture?.(e.pointerId)
+    } catch {
+      /* ignore */
+    }
   }
 
   private attach() {

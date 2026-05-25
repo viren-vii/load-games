@@ -8,14 +8,15 @@ const PLAYER_H = 28
 const GROUND_H = 32
 const PLAYER_X = 60
 
-interface Obstacle { x: number; w: number; h: number }
+interface Obstacle {
+  x: number
+  w: number
+  h: number
+}
 
 export class RunnerEngine extends BaseEngine {
   protected readonly gameName = 'Runner'
-  protected readonly controlHints = [
-    'Space / Tap / Click — jump',
-    'Dodge obstacles. Speed increases over time.',
-  ]
+  protected readonly controlHints = ['Space / Tap / Click — jump', 'Dodge obstacles. Speed increases over time.']
 
   private playerY = 0
   private playerVel = 0
@@ -28,7 +29,9 @@ export class RunnerEngine extends BaseEngine {
   private speed = 0
   private readonly input: InputManager
 
-  private get groundY() { return this.height - GROUND_H }
+  private get groundY() {
+    return this.height - GROUND_H
+  }
 
   private get baseSpeed() {
     // Scale horizontal velocity by canvas width so player gets the same reaction
@@ -39,7 +42,7 @@ export class RunnerEngine extends BaseEngine {
   constructor(canvas: HTMLCanvasElement, config: GameConfig = {}) {
     super(canvas, config)
     this.input = new InputManager(canvas)
-    this.input.on('tap',     () => this.jump())
+    this.input.on('tap', () => this.jump())
     this.input.on('arrowUp', () => this.jump())
     this.reset()
   }
@@ -58,9 +61,25 @@ export class RunnerEngine extends BaseEngine {
   }
 
   private jump() {
-    if (this.state === 'idle') { this.beginGame(); if (this.onGround) { this.playerVel = JUMP_VEL; this.onGround = false }; return }
-    if (this.state === 'gameover') { this.tryGameOverRestart(() => { this.reset(); this.restartGame() }); return }
-    if (this.state === 'running' && this.onGround) { this.playerVel = JUMP_VEL; this.onGround = false }
+    if (this.state === 'idle') {
+      this.beginGame()
+      if (this.onGround) {
+        this.playerVel = JUMP_VEL
+        this.onGround = false
+      }
+      return
+    }
+    if (this.state === 'gameover') {
+      this.tryGameOverRestart(() => {
+        this.reset()
+        this.restartGame()
+      })
+      return
+    }
+    if (this.state === 'running' && this.onGround) {
+      this.playerVel = JUMP_VEL
+      this.onGround = false
+    }
   }
 
   protected update(dt: number) {
@@ -92,10 +111,18 @@ export class RunnerEngine extends BaseEngine {
     for (let i = this.obstacles.length - 1; i >= 0; i--) {
       const obs = this.obstacles[i]!
       obs.x -= this.speed * dtSec
-      if (obs.x + obs.w < 0) { this.obstacles.splice(i, 1); continue }
+      if (obs.x + obs.w < 0) {
+        this.obstacles.splice(i, 1)
+        continue
+      }
 
-      const px = PLAYER_X + 3, py = this.playerY + 3, pw = PLAYER_W - 6, ph = PLAYER_H - 6
-      const ox = obs.x + 1, oy = this.groundY - obs.h, ow = obs.w - 2
+      const px = PLAYER_X + 3,
+        py = this.playerY + 3,
+        pw = PLAYER_W - 6,
+        ph = PLAYER_H - 6
+      const ox = obs.x + 1,
+        oy = this.groundY - obs.h,
+        ow = obs.w - 2
       if (px < ox + ow && px + pw > ox && py < oy + obs.h && py + ph > oy) {
         this.setState('gameover')
         this.loop.stop()
@@ -143,7 +170,9 @@ export class RunnerEngine extends BaseEngine {
     if (this.state === 'gameover') this.renderGameOver(`${this.score}m`)
   }
 
-  getScore() { return this.score }
+  getScore() {
+    return this.score
+  }
 
   destroy() {
     super.destroy()

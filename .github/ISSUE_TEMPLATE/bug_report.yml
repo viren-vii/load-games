@@ -1,0 +1,85 @@
+name: Bug report
+description: Something is broken or behaving unexpectedly.
+title: "[bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. The more reproducible the report, the faster the fix.
+        For security issues, **do not file here** — see [SECURITY.md](https://github.com/viren-vii/load-games/blob/main/SECURITY.md).
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Affected package
+      options:
+        - "@load-games/core"
+        - "@load-games/react"
+        - "@load-games/snake"
+        - "@load-games/flappy"
+        - "@load-games/breakout"
+        - "@load-games/pong"
+        - "@load-games/runner"
+        - "@load-games/space-invaders"
+        - demo app
+        - unsure / multiple
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: e.g. 0.2.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug. Include the actual vs expected behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      description: Minimal steps. A StackBlitz / CodeSandbox link is best. A small code snippet is fine too.
+      placeholder: |
+        1. Render `<GameCanvas engine={SnakeEngine} width={160} height={160} />`
+        2. Tap to start
+        3. Observe …
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, browser + version, Node version, framework (React 18/19, Next.js, etc.), mobile vs desktop.
+      placeholder: |
+        - OS: macOS 14.5
+        - Browser: Chrome 126
+        - Node: 22.5.1
+        - Framework: React 18.3
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output / errors
+      render: shell
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and didn't find a duplicate.
+          required: true
+        - label: I tested on the latest version of the affected package.
+          required: true

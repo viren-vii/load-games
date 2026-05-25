@@ -40,7 +40,7 @@ interface GameCanvasProps extends GameConfig {
 
 export const GameCanvas = forwardRef<GameHandle, GameCanvasProps>(function GameCanvas(
   { engine: EngineClass, ready, className, style, ...config },
-  ref
+  ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const engineRef = useRef<BaseEngine | null>(null)
@@ -56,22 +56,29 @@ export const GameCanvas = forwardRef<GameHandle, GameCanvasProps>(function GameC
     const engine = new EngineClass(canvas, configRef.current)
     engineRef.current = engine
     engine.start()
-    return () => { engineRef.current = null; engine.destroy() }
+    return () => {
+      engineRef.current = null
+      engine.destroy()
+    }
   }, [EngineClass])
 
   useEffect(() => {
     if (ready) engineRef.current?.signalReady()
   }, [ready])
 
-  useImperativeHandle(ref, () => ({
-    pause: () => engineRef.current?.pause(),
-    resume: () => engineRef.current?.resume(),
-    signalReady: () => engineRef.current?.signalReady(),
-    dismiss: () => engineRef.current?.dismiss(),
-    getScore: () => engineRef.current?.getScore() ?? 0,
-    getState: () => engineRef.current?.state ?? 'idle',
-    isReady: () => engineRef.current?.ready ?? false,
-  }), [])
+  useImperativeHandle(
+    ref,
+    () => ({
+      pause: () => engineRef.current?.pause(),
+      resume: () => engineRef.current?.resume(),
+      signalReady: () => engineRef.current?.signalReady(),
+      dismiss: () => engineRef.current?.dismiss(),
+      getScore: () => engineRef.current?.getScore() ?? 0,
+      getState: () => engineRef.current?.state ?? 'idle',
+      isReady: () => engineRef.current?.ready ?? false,
+    }),
+    [],
+  )
 
   return (
     <canvas

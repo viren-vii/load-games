@@ -14,14 +14,13 @@ function randomCell(cols: number, rows: number): Point {
   return { x: Math.floor(Math.random() * cols), y: Math.floor(Math.random() * rows) }
 }
 
-function pointsEqual(a: Point, b: Point) { return a.x === b.x && a.y === b.y }
+function pointsEqual(a: Point, b: Point) {
+  return a.x === b.x && a.y === b.y
+}
 
 export class SnakeEngine extends BaseEngine {
   protected readonly gameName = 'Snake'
-  protected readonly controlHints = [
-    'Arrow keys / WASD — change direction',
-    'Swipe on mobile',
-  ]
+  protected readonly controlHints = ['Arrow keys / WASD — change direction', 'Swipe on mobile']
 
   private snake: Point[] = []
   private food: Point = { x: 0, y: 0 }
@@ -50,7 +49,11 @@ export class SnakeEngine extends BaseEngine {
 
   private bindInput() {
     const startOrTurn = (dir?: Direction) => {
-      if (this.state === 'idle') { this.beginGame(); if (dir) this.nextDirection = dir; return }
+      if (this.state === 'idle') {
+        this.beginGame()
+        if (dir) this.nextDirection = dir
+        return
+      }
       if (dir) {
         if (dir === 'up' && this.direction !== 'down') this.nextDirection = 'up'
         if (dir === 'down' && this.direction !== 'up') this.nextDirection = 'down'
@@ -59,20 +62,32 @@ export class SnakeEngine extends BaseEngine {
       }
     }
 
-    this.input.on('arrowUp',    () => startOrTurn('up'))
-    this.input.on('arrowDown',  () => startOrTurn('down'))
-    this.input.on('arrowLeft',  () => startOrTurn('left'))
+    this.input.on('arrowUp', () => startOrTurn('up'))
+    this.input.on('arrowDown', () => startOrTurn('down'))
+    this.input.on('arrowLeft', () => startOrTurn('left'))
     this.input.on('arrowRight', () => startOrTurn('right'))
     this.input.on('tap', () => {
-      if (this.state === 'idle') { this.beginGame(); return }
-      if (this.state === 'gameover') { this.tryGameOverRestart(() => { this.reset(); this.restartGame() }) }
+      if (this.state === 'idle') {
+        this.beginGame()
+        return
+      }
+      if (this.state === 'gameover') {
+        this.tryGameOverRestart(() => {
+          this.reset()
+          this.restartGame()
+        })
+      }
     })
   }
 
   private reset() {
     const midX = Math.floor(this.cols / 2)
     const midY = Math.floor(this.rows / 2)
-    this.snake = [{ x: midX, y: midY }, { x: midX - 1, y: midY }, { x: midX - 2, y: midY }]
+    this.snake = [
+      { x: midX, y: midY },
+      { x: midX - 1, y: midY },
+      { x: midX - 2, y: midY },
+    ]
     this.direction = 'right'
     this.nextDirection = 'right'
     this.score = 0
@@ -82,7 +97,9 @@ export class SnakeEngine extends BaseEngine {
 
   private spawnFood() {
     let cell: Point
-    do { cell = randomCell(this.cols, this.rows) } while (this.snake.some(s => pointsEqual(s, cell)))
+    do {
+      cell = randomCell(this.cols, this.rows)
+    } while (this.snake.some(s => pointsEqual(s, cell)))
     this.food = cell
   }
 
@@ -142,7 +159,9 @@ export class SnakeEngine extends BaseEngine {
     if (this.state === 'gameover') this.renderGameOver(`Score: ${this.score}`)
   }
 
-  getScore() { return this.score }
+  getScore() {
+    return this.score
+  }
 
   destroy() {
     super.destroy()

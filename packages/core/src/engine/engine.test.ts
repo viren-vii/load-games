@@ -4,7 +4,23 @@ import type { GameConfig } from '../types/index.js'
 
 function makeCtx() {
   const ctx: any = {}
-  for (const m of ['fillRect','strokeRect','clearRect','beginPath','closePath','moveTo','lineTo','stroke','fill','arc','ellipse','roundRect','scale','setLineDash']) ctx[m] = vi.fn()
+  for (const m of [
+    'fillRect',
+    'strokeRect',
+    'clearRect',
+    'beginPath',
+    'closePath',
+    'moveTo',
+    'lineTo',
+    'stroke',
+    'fill',
+    'arc',
+    'ellipse',
+    'roundRect',
+    'scale',
+    'setLineDash',
+  ])
+    ctx[m] = vi.fn()
   ctx.fillText = vi.fn()
   ctx.measureText = vi.fn(() => ({ width: 40 }))
   return ctx
@@ -13,7 +29,8 @@ function makeCtx() {
 function makeCanvas() {
   const ctx = makeCtx()
   return {
-    width: 300, height: 300,
+    width: 300,
+    height: 300,
     style: {},
     getContext: vi.fn(() => ctx),
     getBoundingClientRect: vi.fn(() => ({ width: 300, height: 300, left: 0, top: 0 })),
@@ -26,15 +43,27 @@ class TestEngine extends BaseEngine {
   protected readonly gameName = 'Test'
   protected readonly controlHints = []
   public score = 0
-  getScore() { return this.score }
+  getScore() {
+    return this.score
+  }
   protected update() {}
   protected render() {}
   // expose protected helpers for tests
-  public _beginGame() { this.beginGame() }
-  public _setRunning() { this.setState('running') }
-  public _setGameover() { this.setState('gameover') }
-  public _tryRestart(fn: () => void) { this.tryGameOverRestart(fn) }
-  public _dismissWith(r: any) { this.dismissWith(r) }
+  public _beginGame() {
+    this.beginGame()
+  }
+  public _setRunning() {
+    this.setState('running')
+  }
+  public _setGameover() {
+    this.setState('gameover')
+  }
+  public _tryRestart(fn: () => void) {
+    this.tryGameOverRestart(fn)
+  }
+  public _dismissWith(r: any) {
+    this.dismissWith(r)
+  }
 }
 
 let canvas: HTMLCanvasElement
@@ -50,9 +79,13 @@ beforeEach(() => {
   vi.stubGlobal('performance', { now: () => 0 })
   vi.stubGlobal('requestAnimationFrame', () => 1)
   vi.stubGlobal('cancelAnimationFrame', () => {})
-  vi.stubGlobal('IntersectionObserver', class {
-    observe() {}; disconnect() {}
-  })
+  vi.stubGlobal(
+    'IntersectionObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  )
   canvas = makeCanvas()
   onReady = vi.fn()
   onDismiss = vi.fn()

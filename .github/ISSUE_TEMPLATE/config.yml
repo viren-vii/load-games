@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/viren-vii/load-games/blob/main/SECURITY.md
+    about: Do not file security issues publicly. See SECURITY.md for the private reporting channel.
+  - name: Live demo
+    url: https://viren-vii.github.io/load-games/
+    about: Try every game in the browser before filing a bug.

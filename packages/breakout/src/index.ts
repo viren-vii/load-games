@@ -7,7 +7,14 @@ const BRICK_PAD = 4
 const PADDLE_H = 10
 const BALL_R = 7
 
-interface Brick { x: number; y: number; w: number; h: number; alive: boolean; row: number }
+interface Brick {
+  x: number
+  y: number
+  w: number
+  h: number
+  alive: boolean
+  row: number
+}
 
 export class BreakoutEngine extends BaseEngine {
   protected readonly gameName = 'Breakout'
@@ -46,14 +53,36 @@ export class BreakoutEngine extends BaseEngine {
   }
 
   private bindInput() {
-    this.input.on('arrowLeft',  () => { if (this.state === 'idle') { this.beginGame(); return }; this.paddle.vel = -1 })
-    this.input.on('arrowRight', () => { if (this.state === 'idle') { this.beginGame(); return }; this.paddle.vel = 1 })
+    this.input.on('arrowLeft', () => {
+      if (this.state === 'idle') {
+        this.beginGame()
+        return
+      }
+      this.paddle.vel = -1
+    })
+    this.input.on('arrowRight', () => {
+      if (this.state === 'idle') {
+        this.beginGame()
+        return
+      }
+      this.paddle.vel = 1
+    })
     this.input.on('tap', () => {
-      if (this.state === 'idle') { this.beginGame(); return }
-      if (this.state === 'running' && this.serving) { this.launchBall(); return }
+      if (this.state === 'idle') {
+        this.beginGame()
+        return
+      }
+      if (this.state === 'running' && this.serving) {
+        this.launchBall()
+        return
+      }
       if (this.state === 'gameover') {
         this.tryGameOverRestart(() => {
-          this.lives = 3; this.level = 1; this.score = 0; this.reset(); this.restartGame()
+          this.lives = 3
+          this.level = 1
+          this.score = 0
+          this.reset()
+          this.restartGame()
         })
       }
     })
@@ -81,7 +110,10 @@ export class BreakoutEngine extends BaseEngine {
         this.bricks.push({
           x: BRICK_PAD + c * (brickW + BRICK_PAD),
           y: 36 + r * (brickH + BRICK_PAD),
-          w: brickW, h: brickH, alive: true, row: r,
+          w: brickW,
+          h: brickH,
+          alive: true,
+          row: r,
         })
       }
     }
@@ -89,7 +121,8 @@ export class BreakoutEngine extends BaseEngine {
     const angle = (Math.random() * 60 + 60) * (Math.PI / 180)
     const spd = this.ballSpeed
     this.ball = {
-      x: w / 2, y: h - 80,
+      x: w / 2,
+      y: h - 80,
       vx: spd * Math.cos(angle) * (Math.random() < 0.5 ? 1 : -1),
       vy: -spd * Math.sin(angle),
     }
@@ -121,9 +154,18 @@ export class BreakoutEngine extends BaseEngine {
     this.ball.x += this.ball.vx * dtSec
     this.ball.y += this.ball.vy * dtSec
 
-    if (this.ball.x - BALL_R < 0) { this.ball.x = BALL_R; this.ball.vx = Math.abs(this.ball.vx) }
-    if (this.ball.x + BALL_R > w) { this.ball.x = w - BALL_R; this.ball.vx = -Math.abs(this.ball.vx) }
-    if (this.ball.y - BALL_R < 0) { this.ball.y = BALL_R; this.ball.vy = Math.abs(this.ball.vy) }
+    if (this.ball.x - BALL_R < 0) {
+      this.ball.x = BALL_R
+      this.ball.vx = Math.abs(this.ball.vx)
+    }
+    if (this.ball.x + BALL_R > w) {
+      this.ball.x = w - BALL_R
+      this.ball.vx = -Math.abs(this.ball.vx)
+    }
+    if (this.ball.y - BALL_R < 0) {
+      this.ball.y = BALL_R
+      this.ball.vy = Math.abs(this.ball.vy)
+    }
 
     if (this.ball.y - BALL_R > h) {
       this.lives--
@@ -175,7 +217,10 @@ export class BreakoutEngine extends BaseEngine {
       }
     }
 
-    if (allDead) { this.level++; this.reset() }
+    if (allDead) {
+      this.level++
+      this.reset()
+    }
   }
 
   protected render() {
@@ -218,7 +263,11 @@ export class BreakoutEngine extends BaseEngine {
     if (this.serving && this.state === 'running') {
       ctx.textAlign = 'center'
       const alpha = 0.5 + 0.5 * Math.sin(Date.now() / 350)
-      ctx.fillStyle = theme.text + Math.round(alpha * 255).toString(16).padStart(2, '0')
+      ctx.fillStyle =
+        theme.text +
+        Math.round(alpha * 255)
+          .toString(16)
+          .padStart(2, '0')
       ctx.font = '11px monospace'
       ctx.fillText(this.labels.tapServe, w / 2, h - 18)
       ctx.textAlign = 'left'
@@ -227,7 +276,9 @@ export class BreakoutEngine extends BaseEngine {
     if (this.state === 'gameover') this.renderGameOver(`Score: ${this.score}`)
   }
 
-  getScore() { return this.score }
+  getScore() {
+    return this.score
+  }
 
   destroy() {
     super.destroy()

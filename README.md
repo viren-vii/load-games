@@ -382,7 +382,7 @@ GitHub Pages is auto-enabled by the workflow itself (`actions/configure-pages@v5
 
 ## Status by package
 
-All packages build. Core has 17 unit tests covering ready/dismiss state machine, pause/resume, labels. Snake has 2 collision tests. Other engines rely on the demo for behavioural verification. Coverage target: 60%+ before 1.0.
+All packages build. Core has 32 unit tests across engine (ready/dismiss state machine, pause/resume, labels), input (keyboard/pointer mapping, swipe, multi-touch), and timing (dt cap, idempotency). Snake has 2 collision tests. Other engines rely on the demo for behavioural verification. Coverage target: 60%+ before 1.0.
 
 ## License
 

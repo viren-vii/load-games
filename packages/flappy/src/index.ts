@@ -1,7 +1,11 @@
 import { BaseEngine, InputManager } from '@load-games/core'
 import type { GameConfig } from '@load-games/core'
 
-interface Pipe { x: number; gapY: number; scored?: boolean }
+interface Pipe {
+  x: number
+  gapY: number
+  scored?: boolean
+}
 
 // All gameplay tuned against a 320×320 reference canvas. At other sizes we scale
 // every velocity, dimension, and gap by `min(w,h) / 320` so the feel is consistent
@@ -19,10 +23,7 @@ const FIRST_PIPE_DELAY_MS = 2500
 
 export class FlappyEngine extends BaseEngine {
   protected readonly gameName = 'Flappy'
-  protected readonly controlHints = [
-    'Space / Tap / Click — flap',
-    'Fly through the gaps',
-  ]
+  protected readonly controlHints = ['Space / Tap / Click — flap', 'Fly through the gaps']
 
   private birdY = 0
   private birdVel = 0
@@ -32,13 +33,27 @@ export class FlappyEngine extends BaseEngine {
   private pipeTimer = 0
   private readonly pipeInterval = 1600
 
-  private get scale() { return Math.min(this.width, this.height) / REF }
-  private get gravity() { return GRAVITY_REF * this.scale }
-  private get flapVel() { return FLAP_VEL_REF * this.scale }
-  private get firstFlapVel() { return FIRST_FLAP_VEL_REF * this.scale }
-  private get pipeWidth() { return PIPE_WIDTH_REF * (this.width / REF) }
-  private get gapHeight() { return GAP_HEIGHT_REF * (this.height / REF) }
-  private get birdSize() { return BIRD_SIZE_REF * this.scale }
+  private get scale() {
+    return Math.min(this.width, this.height) / REF
+  }
+  private get gravity() {
+    return GRAVITY_REF * this.scale
+  }
+  private get flapVel() {
+    return FLAP_VEL_REF * this.scale
+  }
+  private get firstFlapVel() {
+    return FIRST_FLAP_VEL_REF * this.scale
+  }
+  private get pipeWidth() {
+    return PIPE_WIDTH_REF * (this.width / REF)
+  }
+  private get gapHeight() {
+    return GAP_HEIGHT_REF * (this.height / REF)
+  }
+  private get birdSize() {
+    return BIRD_SIZE_REF * this.scale
+  }
   private get pipeSpeed() {
     return (PIPE_SPEED_BASE_REF + (this.clampedSpeed - 1) * 20) * (this.width / REF)
   }
@@ -96,8 +111,14 @@ export class FlappyEngine extends BaseEngine {
 
     // Ground kills. Ceiling clamps (common modern variant) — prevents the
     // common "stuck looping near ceiling" failure on small canvases.
-    if (this.birdY + size > h) { this.endGame(); return }
-    if (this.birdY < 0) { this.birdY = 0; this.birdVel = 0 }
+    if (this.birdY + size > h) {
+      this.endGame()
+      return
+    }
+    if (this.birdY < 0) {
+      this.birdY = 0
+      this.birdVel = 0
+    }
 
     this.pipeTimer -= dt
     if (this.pipeTimer <= 0) {
@@ -116,11 +137,17 @@ export class FlappyEngine extends BaseEngine {
         this.config.onScore?.(this.score)
       }
 
-      if (pipe.x + pw < 0) { this.pipes.splice(i, 1); continue }
+      if (pipe.x + pw < 0) {
+        this.pipes.splice(i, 1)
+        continue
+      }
 
       const inPipeX = birdX + size > pipe.x && birdX < pipe.x + pw
       const inGap = this.birdY > pipe.gapY - gap / 2 && this.birdY + size < pipe.gapY + gap / 2
-      if (inPipeX && !inGap) { this.endGame(); return }
+      if (inPipeX && !inGap) {
+        this.endGame()
+        return
+      }
     }
   }
 
@@ -162,7 +189,9 @@ export class FlappyEngine extends BaseEngine {
     if (this.state === 'gameover') this.renderGameOver(`Score: ${this.score}`)
   }
 
-  getScore() { return this.score }
+  getScore() {
+    return this.score
+  }
 
   destroy() {
     super.destroy()
