@@ -30,7 +30,9 @@ export class PongEngine extends BaseEngine {
     this.pointerY = e.clientY - rect.top
     if (this.state === 'idle') this.beginGame()
   }
-  private onPointerLeave = () => { this.pointerY = null }
+  private onPointerLeave = () => {
+    this.pointerY = null
+  }
 
   private get ballSpeed() {
     return 180 + (this.clampedSpeed - 1) * 25
@@ -39,13 +41,27 @@ export class PongEngine extends BaseEngine {
   constructor(canvas: HTMLCanvasElement, config: GameConfig = {}) {
     super(canvas, config)
     this.input = new InputManager(canvas)
-    this.input.on('arrowUp',   () => { if (this.state === 'idle') this.beginGame() })
-    this.input.on('arrowDown', () => { if (this.state === 'idle') this.beginGame() })
-    this.input.on('tap',       () => {
-      if (this.state === 'idle') { this.beginGame(); return }
-      if (this.state === 'running' && this.serving) { this.serve(); return }
+    this.input.on('arrowUp', () => {
+      if (this.state === 'idle') this.beginGame()
+    })
+    this.input.on('arrowDown', () => {
+      if (this.state === 'idle') this.beginGame()
+    })
+    this.input.on('tap', () => {
+      if (this.state === 'idle') {
+        this.beginGame()
+        return
+      }
+      if (this.state === 'running' && this.serving) {
+        this.serve()
+        return
+      }
       if (this.state === 'gameover') {
-        this.tryGameOverRestart(() => { this.score = { player: 0, ai: 0 }; this.reset(); this.restartGame() })
+        this.tryGameOverRestart(() => {
+          this.score = { player: 0, ai: 0 }
+          this.reset()
+          this.restartGame()
+        })
       }
     })
     canvas.addEventListener('pointermove', this.onPointerMove)
@@ -82,7 +98,7 @@ export class PongEngine extends BaseEngine {
     if (this.pointerY !== null) {
       this.player.y = Math.max(0, Math.min(h - PADDLE_H, this.pointerY - PADDLE_H / 2))
     } else {
-      if (this.input.isDown('arrowUp'))   this.player.y = Math.max(0, this.player.y - PLAYER_SPEED * dtSec)
+      if (this.input.isDown('arrowUp')) this.player.y = Math.max(0, this.player.y - PLAYER_SPEED * dtSec)
       if (this.input.isDown('arrowDown')) this.player.y = Math.min(h - PADDLE_H, this.player.y + PLAYER_SPEED * dtSec)
     }
 
@@ -101,12 +117,23 @@ export class PongEngine extends BaseEngine {
     this.ball.x += this.ball.vx * dtSec
     this.ball.y += this.ball.vy * dtSec
 
-    if (this.ball.y < BALL_SIZE / 2) { this.ball.y = BALL_SIZE / 2; this.ball.vy = Math.abs(this.ball.vy) }
-    if (this.ball.y > h - BALL_SIZE / 2) { this.ball.y = h - BALL_SIZE / 2; this.ball.vy = -Math.abs(this.ball.vy) }
+    if (this.ball.y < BALL_SIZE / 2) {
+      this.ball.y = BALL_SIZE / 2
+      this.ball.vy = Math.abs(this.ball.vy)
+    }
+    if (this.ball.y > h - BALL_SIZE / 2) {
+      this.ball.y = h - BALL_SIZE / 2
+      this.ball.vy = -Math.abs(this.ball.vy)
+    }
 
     const playerX = MARGIN + PADDLE_W
-    if (this.ball.vx < 0 && this.ball.x - BALL_SIZE / 2 <= playerX && this.ball.x - BALL_SIZE / 2 >= MARGIN &&
-        this.ball.y >= this.player.y - BALL_SIZE / 2 && this.ball.y <= this.player.y + PADDLE_H + BALL_SIZE / 2) {
+    if (
+      this.ball.vx < 0 &&
+      this.ball.x - BALL_SIZE / 2 <= playerX &&
+      this.ball.x - BALL_SIZE / 2 >= MARGIN &&
+      this.ball.y >= this.player.y - BALL_SIZE / 2 &&
+      this.ball.y <= this.player.y + PADDLE_H + BALL_SIZE / 2
+    ) {
       const hit = (this.ball.y - (this.player.y + PADDLE_H / 2)) / (PADDLE_H / 2)
       const angle = hit * 60 * (Math.PI / 180)
       const spd = Math.sqrt(this.ball.vx ** 2 + this.ball.vy ** 2) * 1.03
@@ -116,8 +143,13 @@ export class PongEngine extends BaseEngine {
     }
 
     const aiX = w - MARGIN - PADDLE_W
-    if (this.ball.vx > 0 && this.ball.x + BALL_SIZE / 2 >= aiX && this.ball.x + BALL_SIZE / 2 <= w - MARGIN &&
-        this.ball.y >= this.ai.y - BALL_SIZE / 2 && this.ball.y <= this.ai.y + PADDLE_H + BALL_SIZE / 2) {
+    if (
+      this.ball.vx > 0 &&
+      this.ball.x + BALL_SIZE / 2 >= aiX &&
+      this.ball.x + BALL_SIZE / 2 <= w - MARGIN &&
+      this.ball.y >= this.ai.y - BALL_SIZE / 2 &&
+      this.ball.y <= this.ai.y + PADDLE_H + BALL_SIZE / 2
+    ) {
       const hit = (this.ball.y - (this.ai.y + PADDLE_H / 2)) / (PADDLE_H / 2)
       const angle = hit * 60 * (Math.PI / 180)
       const spd = Math.sqrt(this.ball.vx ** 2 + this.ball.vy ** 2) * 1.03
@@ -127,12 +159,20 @@ export class PongEngine extends BaseEngine {
     }
 
     if (this.ball.x < 0) {
-      this.score.ai++; this.config.onScore?.(this.score.player)
-      if (this.score.ai >= WIN_SCORE) { this.endMatch(); return }
+      this.score.ai++
+      this.config.onScore?.(this.score.player)
+      if (this.score.ai >= WIN_SCORE) {
+        this.endMatch()
+        return
+      }
       this.reset(-1)
     } else if (this.ball.x > w) {
-      this.score.player++; this.config.onScore?.(this.score.player)
-      if (this.score.player >= WIN_SCORE) { this.endMatch(); return }
+      this.score.player++
+      this.config.onScore?.(this.score.player)
+      if (this.score.player >= WIN_SCORE) {
+        this.endMatch()
+        return
+      }
       this.reset(1)
     }
   }
@@ -155,7 +195,10 @@ export class PongEngine extends BaseEngine {
     ctx.setLineDash([6, 6])
     ctx.strokeStyle = theme.primary + '33'
     ctx.lineWidth = 1
-    ctx.beginPath(); ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h); ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(w / 2, 0)
+    ctx.lineTo(w / 2, h)
+    ctx.stroke()
     ctx.setLineDash([])
 
     ctx.fillStyle = theme.primary
@@ -168,8 +211,10 @@ export class PongEngine extends BaseEngine {
 
     ctx.font = 'bold 20px monospace'
     ctx.textAlign = 'center'
-    ctx.fillStyle = theme.text; ctx.fillText(`${this.score.player}`, w / 4, 28)
-    ctx.fillStyle = theme.accent; ctx.fillText(`${this.score.ai}`, w * 3 / 4, 28)
+    ctx.fillStyle = theme.text
+    ctx.fillText(`${this.score.player}`, w / 4, 28)
+    ctx.fillStyle = theme.accent
+    ctx.fillText(`${this.score.ai}`, (w * 3) / 4, 28)
 
     ctx.font = '10px monospace'
     ctx.fillStyle = theme.text + '55'
@@ -187,7 +232,11 @@ export class PongEngine extends BaseEngine {
     if (this.serving && this.state === 'running') {
       ctx.textAlign = 'center'
       const alpha = 0.5 + 0.5 * Math.sin(Date.now() / 350)
-      ctx.fillStyle = theme.text + Math.round(alpha * 255).toString(16).padStart(2, '0')
+      ctx.fillStyle =
+        theme.text +
+        Math.round(alpha * 255)
+          .toString(16)
+          .padStart(2, '0')
       ctx.font = '11px monospace'
       ctx.fillText(this.labels.tapServe, w / 2, h - 22)
       ctx.textAlign = 'left'
@@ -199,7 +248,9 @@ export class PongEngine extends BaseEngine {
     }
   }
 
-  getScore() { return this.score.player }
+  getScore() {
+    return this.score.player
+  }
 
   destroy() {
     super.destroy()
@@ -209,4 +260,3 @@ export class PongEngine extends BaseEngine {
     this.canvas.removeEventListener('pointerleave', this.onPointerLeave)
   }
 }
-

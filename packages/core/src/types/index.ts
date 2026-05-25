@@ -19,10 +19,10 @@ export interface GameTheme {
 
 /** Why `onDismiss` fired. Lets the host distinguish player choice from host-driven exit. */
 export type DismissReason =
-  | 'user'        // Player tapped the in-canvas return button while playing.
-  | 'gameover'    // Player game-over'd while ready was set; tapped "continue".
-  | 'idle-ready'  // Player hit the idle screen while ready was set; tapped to skip.
-  | 'forced'      // Host called engine.dismiss() directly (timeout, content-now, etc).
+  | 'user' // Player tapped the in-canvas return button while playing.
+  | 'gameover' // Player game-over'd while ready was set; tapped "continue".
+  | 'idle-ready' // Player hit the idle screen while ready was set; tapped to skip.
+  | 'forced' // Host called engine.dismiss() directly (timeout, content-now, etc).
 
 /** Text shown by the engine. Override any subset to localise or rebrand. */
 export interface GameLabels {

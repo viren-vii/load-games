@@ -6,15 +6,21 @@ function makeCanvas() {
   const canvas = {
     addEventListener(type: string, fn: EventListener) {
       const arr = listeners.get(type) ?? []
-      arr.push(fn); listeners.set(type, arr)
+      arr.push(fn)
+      listeners.set(type, arr)
     },
     removeEventListener(type: string, fn: EventListener) {
-      listeners.set(type, (listeners.get(type) ?? []).filter(l => l !== fn))
+      listeners.set(
+        type,
+        (listeners.get(type) ?? []).filter(l => l !== fn),
+      )
     },
     setPointerCapture: vi.fn(),
     releasePointerCapture: vi.fn(),
     dispatch(type: string, ev: any) {
-      ;(listeners.get(type) ?? []).forEach(fn => fn(ev))
+      ;(listeners.get(type) ?? []).forEach(fn => {
+        fn(ev)
+      })
     },
   } as unknown as HTMLCanvasElement & { dispatch(t: string, e: any): void }
   return canvas
@@ -22,12 +28,20 @@ function makeCanvas() {
 
 describe('InputManager — keyboard', () => {
   let canvas: ReturnType<typeof makeCanvas>
-  beforeEach(() => { canvas = makeCanvas() })
+  beforeEach(() => {
+    canvas = makeCanvas()
+  })
 
   it('maps arrow keys and WASD to direction events', () => {
     const im = new InputManager(canvas)
-    const up = vi.fn(), down = vi.fn(), left = vi.fn(), right = vi.fn()
-    im.on('arrowUp', up); im.on('arrowDown', down); im.on('arrowLeft', left); im.on('arrowRight', right)
+    const up = vi.fn(),
+      down = vi.fn(),
+      left = vi.fn(),
+      right = vi.fn()
+    im.on('arrowUp', up)
+    im.on('arrowDown', down)
+    im.on('arrowLeft', left)
+    im.on('arrowRight', right)
     canvas.dispatch('keydown', { key: 'ArrowUp', preventDefault: () => {} })
     canvas.dispatch('keydown', { key: 's', preventDefault: () => {} })
     canvas.dispatch('keydown', { key: 'a', preventDefault: () => {} })
@@ -79,33 +93,39 @@ describe('InputManager — keyboard', () => {
 
 describe('InputManager — pointer (mouse / touch / pen unified)', () => {
   let canvas: ReturnType<typeof makeCanvas>
-  beforeEach(() => { canvas = makeCanvas() })
+  beforeEach(() => {
+    canvas = makeCanvas()
+  })
 
   it('short pointer movement emits tap (single fire, no double-tap)', () => {
     const im = new InputManager(canvas)
     const tap = vi.fn()
     im.on('tap', tap)
     canvas.dispatch('pointerdown', { pointerId: 1, clientX: 100, clientY: 100 })
-    canvas.dispatch('pointerup',   { pointerId: 1, clientX: 105, clientY: 102 })
+    canvas.dispatch('pointerup', { pointerId: 1, clientX: 105, clientY: 102 })
     expect(tap).toHaveBeenCalledOnce()
   })
 
   it('horizontal swipe emits arrowLeft / arrowRight', () => {
     const im = new InputManager(canvas)
-    const left = vi.fn(), right = vi.fn()
-    im.on('arrowLeft', left); im.on('arrowRight', right)
+    const left = vi.fn(),
+      right = vi.fn()
+    im.on('arrowLeft', left)
+    im.on('arrowRight', right)
     canvas.dispatch('pointerdown', { pointerId: 1, clientX: 100, clientY: 50 })
-    canvas.dispatch('pointerup',   { pointerId: 1, clientX: 30,  clientY: 55 })
+    canvas.dispatch('pointerup', { pointerId: 1, clientX: 30, clientY: 55 })
     expect(left).toHaveBeenCalledOnce()
     expect(right).not.toHaveBeenCalled()
   })
 
   it('vertical swipe emits arrowUp / arrowDown', () => {
     const im = new InputManager(canvas)
-    const up = vi.fn(), down = vi.fn()
-    im.on('arrowUp', up); im.on('arrowDown', down)
+    const up = vi.fn(),
+      down = vi.fn()
+    im.on('arrowUp', up)
+    im.on('arrowDown', down)
     canvas.dispatch('pointerdown', { pointerId: 1, clientX: 50, clientY: 100 })
-    canvas.dispatch('pointerup',   { pointerId: 1, clientX: 55, clientY: 200 })
+    canvas.dispatch('pointerup', { pointerId: 1, clientX: 55, clientY: 200 })
     expect(down).toHaveBeenCalledOnce()
     expect(up).not.toHaveBeenCalled()
   })
@@ -115,23 +135,25 @@ describe('InputManager — pointer (mouse / touch / pen unified)', () => {
     const tap = vi.fn()
     im.on('tap', tap)
     canvas.dispatch('pointerdown', { pointerId: 1, clientX: 100, clientY: 100 })
-    canvas.dispatch('pointerup',   { pointerId: 2, clientX: 100, clientY: 100 })
+    canvas.dispatch('pointerup', { pointerId: 2, clientX: 100, clientY: 100 })
     expect(tap).not.toHaveBeenCalled()
   })
 
   it('captures pointer on pointerdown so dragging off-canvas still completes', () => {
-    const im = new InputManager(canvas)
+    new InputManager(canvas)
     canvas.dispatch('pointerdown', { pointerId: 7, clientX: 100, clientY: 100 })
     expect((canvas as any).setPointerCapture).toHaveBeenCalledWith(7)
   })
 
   it('pointercancel cleans up tracking without emitting', () => {
     const im = new InputManager(canvas)
-    const tap = vi.fn(), left = vi.fn()
-    im.on('tap', tap); im.on('arrowLeft', left)
+    const tap = vi.fn(),
+      left = vi.fn()
+    im.on('tap', tap)
+    im.on('arrowLeft', left)
     canvas.dispatch('pointerdown', { pointerId: 1, clientX: 100, clientY: 100 })
     canvas.dispatch('pointercancel', { pointerId: 1, clientX: 30, clientY: 100 })
-    canvas.dispatch('pointerup',   { pointerId: 1, clientX: 30, clientY: 100 })
+    canvas.dispatch('pointerup', { pointerId: 1, clientX: 30, clientY: 100 })
     expect(tap).not.toHaveBeenCalled()
     expect(left).not.toHaveBeenCalled()
   })

@@ -25,7 +25,9 @@ function flush(timestamp: number) {
   now = timestamp
   const cbs = rafCallbacks
   rafCallbacks = []
-  cbs.forEach(cb => cb(timestamp))
+  cbs.forEach(cb => {
+    cb(timestamp)
+  })
 }
 
 describe('GameLoop', () => {

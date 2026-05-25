@@ -13,8 +13,17 @@ const BULLET_W = 3
 const BULLET_H = 10
 const PLAYER_SPEED = 240
 
-interface Invader { x: number; y: number; alive: boolean; row: number }
-interface Bullet { x: number; y: number; dir: 1 | -1 }
+interface Invader {
+  x: number
+  y: number
+  alive: boolean
+  row: number
+}
+interface Bullet {
+  x: number
+  y: number
+  dir: 1 | -1
+}
 
 export class SpaceInvadersEngine extends BaseEngine {
   protected readonly gameName = 'Space Invaders'
@@ -41,21 +50,35 @@ export class SpaceInvadersEngine extends BaseEngine {
     this.pointerX = e.clientX - rect.left
     if (this.state === 'idle') this.beginGame()
   }
-  private onPointerLeave = () => { this.pointerX = null }
+  private onPointerLeave = () => {
+    this.pointerX = null
+  }
 
   constructor(canvas: HTMLCanvasElement, config: GameConfig = {}) {
     super(canvas, config)
     this.input = new InputManager(canvas)
     this.input.on('tap', () => {
-      if (this.state === 'idle') { this.beginGame(); return }
+      if (this.state === 'idle') {
+        this.beginGame()
+        return
+      }
       if (this.state === 'gameover') {
-        this.tryGameOverRestart(() => { this.wave = 1; this.score = 0; this.init(); this.restartGame() })
+        this.tryGameOverRestart(() => {
+          this.wave = 1
+          this.score = 0
+          this.init()
+          this.restartGame()
+        })
         return
       }
       this.shoot()
     })
-    this.input.on('arrowLeft',  () => { if (this.state === 'idle') this.beginGame() })
-    this.input.on('arrowRight', () => { if (this.state === 'idle') this.beginGame() })
+    this.input.on('arrowLeft', () => {
+      if (this.state === 'idle') this.beginGame()
+    })
+    this.input.on('arrowRight', () => {
+      if (this.state === 'idle') this.beginGame()
+    })
     canvas.addEventListener('pointermove', this.onPointerMove)
     canvas.addEventListener('pointerleave', this.onPointerLeave)
     this.init()
@@ -114,8 +137,9 @@ export class SpaceInvadersEngine extends BaseEngine {
       // Pointer drag (mouse / touch / pen) directly positions the ship — primary mobile control.
       this.playerX = Math.max(0, Math.min(this.width - PLAYER_W, this.pointerX - PLAYER_W / 2))
     } else {
-      if (this.input.isDown('arrowLeft'))  this.playerX = Math.max(0, this.playerX - PLAYER_SPEED * dtSec)
-      if (this.input.isDown('arrowRight')) this.playerX = Math.min(this.width - PLAYER_W, this.playerX + PLAYER_SPEED * dtSec)
+      if (this.input.isDown('arrowLeft')) this.playerX = Math.max(0, this.playerX - PLAYER_SPEED * dtSec)
+      if (this.input.isDown('arrowRight'))
+        this.playerX = Math.min(this.width - PLAYER_W, this.playerX + PLAYER_SPEED * dtSec)
     }
 
     this.shootCooldown = Math.max(0, this.shootCooldown - dt)
@@ -127,7 +151,8 @@ export class SpaceInvadersEngine extends BaseEngine {
 
     // Single-pass scan: count alive, find edge violation, find ship-reach. No allocations.
     let aliveCount = 0
-    let hitEdgeLeft = false, hitEdgeRight = false
+    let hitEdgeLeft = false,
+      hitEdgeRight = false
     let shipReached = false
     const stepXPreview = 8 * this.invDir
     const reachY = h - PLAYER_H - 20
@@ -140,7 +165,10 @@ export class SpaceInvadersEngine extends BaseEngine {
     }
     const hitEdge = hitEdgeLeft || hitEdgeRight
 
-    const moveInterval = Math.max(80, (800 - (this.clampedSpeed - 1) * 60) - (INVADER_COLS * INVADER_ROWS - aliveCount) * 12)
+    const moveInterval = Math.max(
+      80,
+      800 - (this.clampedSpeed - 1) * 60 - (INVADER_COLS * INVADER_ROWS - aliveCount) * 12,
+    )
     this.invMoveTimer += dt
     if (this.invMoveTimer >= moveInterval) {
       this.invMoveTimer = 0
@@ -151,35 +179,52 @@ export class SpaceInvadersEngine extends BaseEngine {
       } else {
         for (const inv of this.invaders) inv.x += stepX
       }
-      if (shipReached) { this.endGame(); return }
+      if (shipReached) {
+        this.endGame()
+        return
+      }
     }
 
     const BULLET_SPEED = 280
     for (let i = this.bullets.length - 1; i >= 0; i--) {
       const b = this.bullets[i]!
       b.y += b.dir * BULLET_SPEED * dtSec
-      if (b.y < 0 || b.y > h) { this.bullets.splice(i, 1); continue }
+      if (b.y < 0 || b.y > h) {
+        this.bullets.splice(i, 1)
+        continue
+      }
 
       if (b.dir === -1) {
         let hit = false
         for (const inv of this.invaders) {
           if (!inv.alive) continue
           if (b.x >= inv.x && b.x <= inv.x + INV_W && b.y <= inv.y + INV_H && b.y >= inv.y) {
-            inv.alive = false; this.score++; this.config.onScore?.(this.score); hit = true; break
+            inv.alive = false
+            this.score++
+            this.config.onScore?.(this.score)
+            hit = true
+            break
           }
         }
-        if (hit) { this.bullets.splice(i, 1); continue }
+        if (hit) {
+          this.bullets.splice(i, 1)
+          continue
+        }
       }
 
       if (b.dir === 1) {
         const py = h - PLAYER_H - 8
         if (b.x >= this.playerX && b.x <= this.playerX + PLAYER_W && b.y >= py && b.y <= py + PLAYER_H) {
-          this.endGame(); return
+          this.endGame()
+          return
         }
       }
     }
 
-    if (aliveCount === 0) { this.wave++; this.init() }
+    if (aliveCount === 0) {
+      this.wave++
+      this.init()
+    }
   }
 
   private endGame() {
@@ -228,7 +273,9 @@ export class SpaceInvadersEngine extends BaseEngine {
     if (this.state === 'gameover') this.renderGameOver(`Score: ${this.score}`)
   }
 
-  getScore() { return this.score }
+  getScore() {
+    return this.score
+  }
 
   destroy() {
     super.destroy()

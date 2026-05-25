@@ -27,23 +27,14 @@ export interface LoadingGameProps extends GameConfig {
  * For composition control, use `<GameCanvas/>` directly and render your own button via the ref.
  */
 export const LoadingGame = forwardRef<GameHandle, LoadingGameProps>(function LoadingGame(
-  {
-    skipButton = true,
-    skipLabel = 'Skip',
-    skipPosition = 'bottom',
-    wrapperStyle,
-    skipButtonStyle,
-    ...gameProps
-  },
-  ref
+  { skipButton = true, skipLabel = 'Skip', skipPosition = 'bottom', wrapperStyle, skipButtonStyle, ...gameProps },
+  ref,
 ) {
   const handleRef = useRef<GameHandle>(null)
   useImperativeHandle(ref, () => handleRef.current as GameHandle, [])
 
   const flexDirection: React.CSSProperties['flexDirection'] =
-    skipPosition === 'top' ? 'column-reverse'
-      : skipPosition === 'right' ? 'row'
-      : 'column'
+    skipPosition === 'top' ? 'column-reverse' : skipPosition === 'right' ? 'row' : 'column'
 
   return (
     <div style={{ display: 'inline-flex', flexDirection, gap: 8, alignItems: 'center', ...wrapperStyle }}>

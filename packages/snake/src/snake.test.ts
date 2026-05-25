@@ -13,12 +13,20 @@ function wouldCollide(snake: { x: number; y: number }[], next: { x: number; y: n
 
 describe('snake collision', () => {
   it('detects self collision', () => {
-    const snake = [{ x: 5, y: 5 }, { x: 4, y: 5 }, { x: 3, y: 5 }]
+    const snake = [
+      { x: 5, y: 5 },
+      { x: 4, y: 5 },
+      { x: 3, y: 5 },
+    ]
     expect(wouldCollide(snake, { x: 4, y: 5 })).toBe(true)
   })
 
   it('allows safe move', () => {
-    const snake = [{ x: 5, y: 5 }, { x: 4, y: 5 }, { x: 3, y: 5 }]
+    const snake = [
+      { x: 5, y: 5 },
+      { x: 4, y: 5 },
+      { x: 3, y: 5 },
+    ]
     expect(wouldCollide(snake, { x: 6, y: 5 })).toBe(false)
   })
 })
