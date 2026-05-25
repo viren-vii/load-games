@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" role="img" aria-label="Pong game preview">
   <rect width="320" height="240" fill="#0a0a0a"/>
+  <rect x="0.5" y="0.5" width="319" height="239" fill="none" stroke="#22c55e" stroke-width="1" stroke-opacity="0.45"/>
   <!-- centerline -->
   <line x1="160" y1="0" x2="160" y2="240" stroke="#ffffff" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="6 6"/>
   <!-- player paddle (left, primary) -->

@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200" role="img" aria-label="Runner game preview">
   <rect width="400" height="200" fill="#0a0a0a"/>
+  <rect x="0.5" y="0.5" width="399" height="199" fill="none" stroke="#22c55e" stroke-width="1" stroke-opacity="0.45"/>
   <!-- ground area (faded fill) -->
   <rect x="0" y="168" width="400" height="32" fill="#ffffff" fill-opacity="0.2"/>
   <!-- ground line -->
