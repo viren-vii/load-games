@@ -63,12 +63,18 @@ export class SpaceInvadersEngine extends BaseEngine {
 
   private init() {
     const w = this.width
-    const totalW = INVADER_COLS * (INV_W + INV_PAD_X) - INV_PAD_X
+    // Adaptive horizontal spacing: at the reference 320px width the layout uses
+    // INV_PAD_X (10px). On narrower canvases we squeeze the gaps (down to 2px)
+    // so all 8 columns always fit. Beyond 320 the spacing stays at the reference value.
+    const naturalTotalW = INVADER_COLS * (INV_W + INV_PAD_X) - INV_PAD_X
+    const minTotalW = INVADER_COLS * (INV_W + 2) - 2
+    const totalW = Math.min(naturalTotalW, Math.max(minTotalW, w - 12))
+    const padX = (totalW - INVADER_COLS * INV_W + INV_W) / (INVADER_COLS - 1) - INV_W
     const startX = (w - totalW) / 2
     this.invaders = []
     for (let r = 0; r < INVADER_ROWS; r++) {
       for (let c = 0; c < INVADER_COLS; c++) {
-        this.invaders.push({ x: startX + c * (INV_W + INV_PAD_X), y: 36 + r * (INV_H + INV_PAD_Y), alive: true, row: r })
+        this.invaders.push({ x: startX + c * (INV_W + padX), y: 36 + r * (INV_H + INV_PAD_Y), alive: true, row: r })
       }
     }
     this.playerX = this.width / 2 - PLAYER_W / 2

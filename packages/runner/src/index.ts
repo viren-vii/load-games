@@ -31,7 +31,9 @@ export class RunnerEngine extends BaseEngine {
   private get groundY() { return this.height - GROUND_H }
 
   private get baseSpeed() {
-    return 200 + (this.clampedSpeed - 1) * 25
+    // Scale horizontal velocity by canvas width so player gets the same reaction
+    // window at any size. Reference: 320px wide → 200 px/s. At 160 → 100 px/s.
+    return (200 + (this.clampedSpeed - 1) * 25) * (this.width / 320)
   }
 
   constructor(canvas: HTMLCanvasElement, config: GameConfig = {}) {

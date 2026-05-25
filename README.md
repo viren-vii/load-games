@@ -161,22 +161,84 @@ function AskAI({ prompt }: { prompt: string }) {
 | `getState()` | `'idle' \| 'running' \| 'paused' \| 'gameover'`. |
 | `isReady()` | Has `signalReady()` been called? |
 
-### Callback summary
+## Complete prop reference
 
-| Callback | Fires |
+### `<GameCanvas/>` props
+
+Extends every field of `GameConfig` (see below) plus:
+
+| Prop | Type | Default | Effect |
+|---|---|---|---|
+| `engine` | `EngineClass` | (required) | The engine class to instantiate — pass the class itself, not an instance. |
+| `ready` | `boolean` | `false` | When `true`, calls `engine.signalReady()`. Shows ready badge, swaps gameover prompt to "tap to continue". |
+| `className` | `string` | `undefined` | Forwarded to `<canvas>`. |
+| `style` | `React.CSSProperties` | `undefined` | Merged onto the canvas's base style. |
+
+### `<LoadingGame/>` props
+
+Everything `<GameCanvas/>` accepts, plus:
+
+| Prop | Type | Default | Effect |
+|---|---|---|---|
+| `skipButton` | `boolean` | `true` | Render the external "Skip" button next to the canvas. |
+| `skipLabel` | `string` | `"Skip"` | Button text. |
+| `skipPosition` | `'top' \| 'bottom' \| 'right'` | `'bottom'` | Position relative to canvas. Uses flex direction internally. |
+| `skipButtonStyle` | `React.CSSProperties` | `{}` | Inline style override for the button. |
+| `wrapperStyle` | `React.CSSProperties` | `{}` | Inline style override for the wrapping flex div. |
+
+### `GameConfig` fields (passed through both components)
+
+Configuration for the underlying engine. **Captured on mount — config changes after mount don't take effect; remount via React `key` to apply new values.**
+
+| Field | Type | Default | Effect |
+|---|---|---|---|
+| `width` | `number` | container or 300 | Canvas width in CSS pixels. |
+| `height` | `number` | container or 300 | Canvas height in CSS pixels. |
+| `speed` | `number` | `5` | Difficulty / pace (1–10, clamped). Game-specific interpretation. |
+| `theme` | `Partial<GameTheme>` | inherits `DEFAULT_THEME` | Override `bg`, `primary`, `accent`, `text` (hex strings). Partial; missing keys inherit. |
+| `labels` | `Partial<GameLabels>` | inherits `DEFAULT_LABELS` | Override visible strings. Partial. See [GameLabels](#gamelabels) below. |
+| `returnButton` | `boolean` | `true` | Whether the in-canvas "● READY" badge is clickable as an exit when `ready` + running. |
+| `onScore` | `(score: number) => void` | — | Score changed (de-duplicated against last value). |
+| `onGameOver` | `(score: number) => void` | — | Player died / failed a life. |
+| `onReady` | `() => void` | — | Host signalled ready (analytics hook, fires once). |
+| `onPause` | `() => void` | — | Game paused (tab hide, off-screen, programmatic). |
+| `onResume` | `() => void` | — | Game resumed from paused. |
+| `onDismiss` | `(score: number, reason: DismissReason) => void` | — | Game exited. See reasons below. |
+
+#### `DismissReason`
+
+| Value | Meaning |
 |---|---|
-| `onScore(n)` | Score change (de-duplicated — won't fire if value unchanged) |
-| `onGameOver(n)` | A life ends (player dies) |
-| `onReady()` | Once — when host signals ready (analytics hook) |
-| `onPause()` | Game pauses (tab hide, canvas off-screen, or `ref.pause()`) |
-| `onResume()` | Game resumes from paused |
-| `onDismiss(n, reason)` | Game exits. `reason` is `'user' \| 'gameover' \| 'idle-ready' \| 'forced'` |
+| `'user'` | Player tapped the in-canvas return button mid-play (or pressed `Esc`). |
+| `'gameover'` | Player died and tapped the "continue" prompt. |
+| `'idle-ready'` | Content arrived before player started; player tapped the idle screen to skip. |
+| `'forced'` | Host called `engine.dismiss()` directly (timeout fallback, content-now button, etc). |
 
-`onDismiss` reasons:
-- `user` — player tapped the in-canvas return button mid-play (or pressed Esc)
-- `gameover` — player died and tapped the "continue" prompt
-- `idle-ready` — content arrived before player started; player tapped to skip
-- `forced` — host called `engine.dismiss()` (timeout fallback, content-now button, etc)
+#### `GameLabels`
+
+| Key | Default |
+|---|---|
+| `idleStart` | `"tap / press any key to start"` |
+| `idleReady` | `"content ready · tap to continue"` |
+| `gameOver` | `"GAME OVER"` |
+| `tapRestart` | `"tap to restart"` |
+| `tapContinue` | `"tap to continue →"` |
+| `readyBadge` | `"● READY"` |
+| `tapServe` | `"tap to serve"` |
+
+Override any subset; the rest use defaults. `import { DEFAULT_LABELS } from '@load-games/core'` if you need to read the defaults.
+
+### `GameHandle` (via `ref`)
+
+| Method | Returns | Effect |
+|---|---|---|
+| `pause()` | `void` | Pause the game (idempotent if already paused). |
+| `resume()` | `void` | Resume from paused (idempotent). |
+| `signalReady()` | `void` | Same as `ready={true}` — for non-React or imperative use. Idempotent. |
+| `dismiss()` | `void` | Force-exit. Fires `onDismiss(score, 'forced')`. Idempotent. |
+| `getScore()` | `number` | Current score without subscribing to `onScore`. |
+| `getState()` | `GameState` | `'idle' \| 'running' \| 'paused' \| 'gameover'`. |
+| `isReady()` | `boolean` | Has `signalReady()` been called? |
 
 Inline callbacks are safe — the wrapper captures the latest via ref each render, so writing `onScore={n => setScore(n)}` directly does **not** recreate the engine.
 
@@ -286,21 +348,31 @@ pnpm --filter @load-games/demo dev   # local playground at http://localhost:5173
 ### Releasing
 
 1. `pnpm changeset` — describe changes, pick bump level.
-2. Merge PR. Release workflow opens a "Version packages" PR.
-3. Merge that. Workflow publishes to npm.
+2. Push / merge PR with the changeset file.
+3. Release workflow opens a "Version packages" PR aggregating all pending changesets.
+4. Merge that PR. Workflow re-runs, sees no changesets pending, publishes to npm.
 
-## Required GitHub secrets
+### Publishing auth
 
-| Secret | For | How to get |
-|---|---|---|
-| `NPM_TOKEN` | release.yml publish step | npmjs.com → Access Tokens → Automation token, granted to `@load-games` org |
+npm Trusted Publishing (OIDC) — no long-lived tokens stored as secrets. The release workflow has `id-token: write`, the npm CLI in the runner mints a short-lived OIDC token and the npm registry verifies it against a Trusted Publisher configured on each `@load-games/*` package:
 
-GitHub Pages must be enabled in repo Settings → Pages → Source: GitHub Actions.
+- Publisher: GitHub Actions
+- Owner: `viren-vii`
+- Repository: `load-games`
+- Workflow filename: `release.yml`
+
+Every published tarball carries a SLSA Provenance v1 attestation tying it to the exact workflow run + commit SHA, visible as a "Provenance" badge on npmjs.com.
+
+Setup is per-package and one-time — configured at https://www.npmjs.com/package/@load-games/{pkg}/access. New packages added later need their own Trusted Publisher entry on first publish.
+
+### Pages
+
+GitHub Pages is auto-enabled by the workflow itself (`actions/configure-pages@v5` with `enablement: true`). On the first push to `main` it enables Pages and deploys the demo. Subsequent pushes just deploy.
 
 ## Status by package
 
-All packages build. Snake has 2 unit tests; others rely on demo for behavioural verification. Coverage target: 60%+ before 1.0.
+All packages build. Core has 17 unit tests covering ready/dismiss state machine, pause/resume, labels. Snake has 2 collision tests. Other engines rely on the demo for behavioural verification. Coverage target: 60%+ before 1.0.
 
 ## License
 
-MIT (license file pending).
+MIT — see [LICENSE](LICENSE).

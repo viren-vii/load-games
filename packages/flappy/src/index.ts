@@ -3,15 +3,19 @@ import type { GameConfig } from '@load-games/core'
 
 interface Pipe { x: number; gapY: number; scored?: boolean }
 
-const GRAVITY = 1500           // softened from 1800 — easier vertical control
-const FLAP_VEL = -460          // softened from -480 (paired with lower gravity)
-const FIRST_FLAP_VEL = -560    // beginGame gives an extra-tall first flap so the bird arcs high before falling
-const PIPE_WIDTH = 40
-const GAP_HEIGHT = 130         // widened from 120 for forgiveness
-const PIPE_SPEED_BASE = 120
+// All gameplay tuned against a 320×320 reference canvas. At other sizes we scale
+// every velocity, dimension, and gap by `min(w,h) / 320` so the feel is consistent
+// at any canvas dimension — critical for small loaders (160×160 etc.).
+const REF = 320
+const GRAVITY_REF = 1500
+const FLAP_VEL_REF = -460
+const FIRST_FLAP_VEL_REF = -560
+const PIPE_WIDTH_REF = 40
+const GAP_HEIGHT_REF = 130
+const PIPE_SPEED_BASE_REF = 120
 const BIRD_X_RATIO = 0.25
-const BIRD_SIZE = 18
-const FIRST_PIPE_DELAY_MS = 2500 // first pipe spawns later so player has flap-practice time
+const BIRD_SIZE_REF = 18
+const FIRST_PIPE_DELAY_MS = 2500
 
 export class FlappyEngine extends BaseEngine {
   protected readonly gameName = 'Flappy'
@@ -28,8 +32,15 @@ export class FlappyEngine extends BaseEngine {
   private pipeTimer = 0
   private readonly pipeInterval = 1600
 
+  private get scale() { return Math.min(this.width, this.height) / REF }
+  private get gravity() { return GRAVITY_REF * this.scale }
+  private get flapVel() { return FLAP_VEL_REF * this.scale }
+  private get firstFlapVel() { return FIRST_FLAP_VEL_REF * this.scale }
+  private get pipeWidth() { return PIPE_WIDTH_REF * (this.width / REF) }
+  private get gapHeight() { return GAP_HEIGHT_REF * (this.height / REF) }
+  private get birdSize() { return BIRD_SIZE_REF * this.scale }
   private get pipeSpeed() {
-    return PIPE_SPEED_BASE + (this.clampedSpeed - 1) * 20
+    return (PIPE_SPEED_BASE_REF + (this.clampedSpeed - 1) * 20) * (this.width / REF)
   }
 
   constructor(canvas: HTMLCanvasElement, config: GameConfig = {}) {
@@ -41,7 +52,9 @@ export class FlappyEngine extends BaseEngine {
   }
 
   private reset() {
-    this.birdY = this.height / 2
+    // Bird starts a third of the way down (not centred) so it has more room to
+    // fall on the first flap — feels less "starts crashing into the ceiling."
+    this.birdY = this.height / 3
     this.birdVel = 0
     this.pipes = []
     this.score = 0
@@ -51,13 +64,21 @@ export class FlappyEngine extends BaseEngine {
   private flap() {
     if (this.state === 'idle') {
       this.beginGame()
-      // Extra-tall first flap + delayed first pipe combine to give the player a
-      // ~2 second acclimation window before any real obstacle threatens.
-      this.birdVel = FIRST_FLAP_VEL
+      // First flap is extra-tall + first pipe is delayed → player gets to acclimate.
+      this.birdVel = this.firstFlapVel
       return
     }
-    if (this.state === 'gameover') { this.tryGameOverRestart(() => { this.reset(); this.restartGame() }); return }
-    if (this.state === 'running') this.birdVel = FLAP_VEL
+    if (this.state === 'gameover') {
+      this.tryGameOverRestart(() => {
+        this.reset()
+        // Apply the same extra-tall first flap on every restart (not just the
+        // very first start) so the player doesn't immediately fall again.
+        this.birdVel = this.firstFlapVel
+        this.restartGame()
+      })
+      return
+    }
+    if (this.state === 'running') this.birdVel = this.flapVel
   }
 
   protected update(dt: number) {
@@ -66,33 +87,39 @@ export class FlappyEngine extends BaseEngine {
     const w = this.width
     const h = this.height
     const birdX = w * BIRD_X_RATIO
+    const pw = this.pipeWidth
+    const gap = this.gapHeight
+    const size = this.birdSize
 
-    this.birdVel += GRAVITY * dtSec
+    this.birdVel += this.gravity * dtSec
     this.birdY += this.birdVel * dtSec
 
-    if (this.birdY < 0 || this.birdY + BIRD_SIZE > h) { this.endGame(); return }
+    // Ground kills. Ceiling clamps (common modern variant) — prevents the
+    // common "stuck looping near ceiling" failure on small canvases.
+    if (this.birdY + size > h) { this.endGame(); return }
+    if (this.birdY < 0) { this.birdY = 0; this.birdVel = 0 }
 
     this.pipeTimer -= dt
     if (this.pipeTimer <= 0) {
       this.pipeTimer = this.pipeInterval
-      const minGap = GAP_HEIGHT / 2 + 20
-      this.pipes.push({ x: w, gapY: minGap + Math.random() * (h - GAP_HEIGHT - 40) })
+      const minGap = gap / 2 + 20
+      this.pipes.push({ x: w, gapY: minGap + Math.random() * (h - gap - 40) })
     }
 
     for (let i = this.pipes.length - 1; i >= 0; i--) {
       const pipe = this.pipes[i]!
       pipe.x -= this.pipeSpeed * dtSec
 
-      if (pipe.x + PIPE_WIDTH < birdX && !pipe.scored) {
+      if (pipe.x + pw < birdX && !pipe.scored) {
         pipe.scored = true
         this.score++
         this.config.onScore?.(this.score)
       }
 
-      if (pipe.x + PIPE_WIDTH < 0) { this.pipes.splice(i, 1); continue }
+      if (pipe.x + pw < 0) { this.pipes.splice(i, 1); continue }
 
-      const inPipeX = birdX + BIRD_SIZE > pipe.x && birdX < pipe.x + PIPE_WIDTH
-      const inGap = this.birdY > pipe.gapY - GAP_HEIGHT / 2 && this.birdY + BIRD_SIZE < pipe.gapY + GAP_HEIGHT / 2
+      const inPipeX = birdX + size > pipe.x && birdX < pipe.x + pw
+      const inGap = this.birdY > pipe.gapY - gap / 2 && this.birdY + size < pipe.gapY + gap / 2
       if (inPipeX && !inGap) { this.endGame(); return }
     }
   }
@@ -108,21 +135,24 @@ export class FlappyEngine extends BaseEngine {
     const w = this.width
     const h = this.height
     const birdX = w * BIRD_X_RATIO
+    const pw = this.pipeWidth
+    const gap = this.gapHeight
+    const size = this.birdSize
 
     ctx.fillStyle = theme.bg
     ctx.fillRect(0, 0, w, h)
 
     ctx.fillStyle = theme.accent
     for (const pipe of this.pipes) {
-      const topH = pipe.gapY - GAP_HEIGHT / 2
-      const botY = pipe.gapY + GAP_HEIGHT / 2
-      ctx.fillRect(pipe.x, 0, PIPE_WIDTH, topH)
-      ctx.fillRect(pipe.x, botY, PIPE_WIDTH, h - botY)
+      const topH = pipe.gapY - gap / 2
+      const botY = pipe.gapY + gap / 2
+      ctx.fillRect(pipe.x, 0, pw, topH)
+      ctx.fillRect(pipe.x, botY, pw, h - botY)
     }
 
     ctx.fillStyle = theme.primary
     ctx.beginPath()
-    ctx.ellipse(birdX + BIRD_SIZE / 2, this.birdY + BIRD_SIZE / 2, BIRD_SIZE / 2, BIRD_SIZE / 2, 0, 0, Math.PI * 2)
+    ctx.ellipse(birdX + size / 2, this.birdY + size / 2, size / 2, size / 2, 0, 0, Math.PI * 2)
     ctx.fill()
 
     ctx.fillStyle = theme.text

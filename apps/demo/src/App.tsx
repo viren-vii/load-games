@@ -39,6 +39,15 @@ const GAME_META: Record<GameId, { label: string; controls: string; engine: Engin
 export function App() {
   const [active, setActive] = useState<GameId>('snake')
   const [cfg, setCfg] = useState<Config>(DEFAULTS)
+  // Debounced copy used in the LoadingGame `key`. Without this, every slider tick
+  // would remount the game (engine captures config on mount, so width/height/speed
+  // need a remount to apply). Direct re-keying caused visible flicker.
+  const [appliedCfg, setAppliedCfg] = useState<Config>(DEFAULTS)
+  useEffect(() => {
+    const t = setTimeout(() => setAppliedCfg(cfg), 250)
+    return () => clearTimeout(t)
+  }, [cfg])
+
   const [score, setScore] = useState(0)
   const [events, setEvents] = useState<string[]>([])
   const [mounted, setMounted] = useState(true)
@@ -98,17 +107,17 @@ export function App() {
 
       <div style={s.body}>
         <div style={s.canvasCol}>
-          <div style={s.canvasWrap}>
+          <div style={s.gameArea}>
             {mounted
               ? <LoadingGame
                   ref={gameRef}
-                  // Remount only when game or config changes — engine captures config at mount.
-                  key={`${active}|${cfg.width}|${cfg.height}|${cfg.speed}|${cfg.theme.bg}|${cfg.theme.primary}|${cfg.theme.accent}|${cfg.theme.text}`}
+                  // Debounced cfg — slider drags no longer rapidly remount.
+                  key={`${active}|${appliedCfg.width}|${appliedCfg.height}|${appliedCfg.speed}|${appliedCfg.theme.bg}|${appliedCfg.theme.primary}|${appliedCfg.theme.accent}|${appliedCfg.theme.text}`}
                   engine={GAME_META[active]!.engine}
-                  width={cfg.width}
-                  height={cfg.height}
-                  speed={cfg.speed}
-                  theme={cfg.theme}
+                  width={appliedCfg.width}
+                  height={appliedCfg.height}
+                  speed={appliedCfg.speed}
+                  theme={appliedCfg.theme}
                   ready={ready}
                   skipButton
                   skipPosition="bottom"
@@ -118,10 +127,13 @@ export function App() {
                   onDismiss={handleDismiss}
                   onPause={handlePause}
                   onResume={handleResume}
-                  style={s.canvas}
+                  // Border on the canvas itself (not a wrapper), so the skip button
+                  // sits cleanly below outside any border.
+                  style={{ ...s.canvas, border: '1px solid #222', borderRadius: 4 }}
                   skipButtonStyle={{ color: '#22c55e' }}
+                  wrapperStyle={{ gap: 12 }}
                 />
-              : <div style={{ ...s.canvas, width: cfg.width, height: cfg.height, ...s.dismissedScreen }}>
+              : <div style={{ ...s.canvas, width: appliedCfg.width, height: appliedCfg.height, ...s.dismissedScreen }}>
                   <div style={s.dismissedTitle}>content delivered</div>
                   <div style={s.dismissedSub}>final score: {score}</div>
                   <button style={s.replay} onClick={resetGameCycle}>↻ play again</button>
@@ -257,7 +269,7 @@ const s = {
   tabActive: { borderColor: '#22c55e', color: '#22c55e' },
   body: { display: 'flex', gap: 32, flexWrap: 'wrap' as const, alignItems: 'flex-start' },
   canvasCol: { display: 'flex', flexDirection: 'column' as const, gap: 8, maxWidth: '100%' },
-  canvasWrap: { border: '1px solid #222', borderRadius: 4, overflow: 'hidden', display: 'inline-block', maxWidth: '100%' },
+  gameArea: { display: 'inline-block', maxWidth: '100%' },
   canvas: { display: 'block', maxWidth: '100%' },
   dismissedScreen: {
     display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center',
