@@ -2,6 +2,12 @@
 
 Breakout / Arkanoid for [load-games](https://github.com/viren-vii/load-games).
 
+<!-- preview-block -->
+<p>
+  <a href="https://viren-vii.github.io/load-games/?game=breakout"><img src="https://raw.githubusercontent.com/viren-vii/load-games/main/packages/breakout/preview.svg" alt="breakout game preview" width="320" /></a><br/>
+  <a href="https://viren-vii.github.io/load-games/?game=breakout"><b>▶ Try it live</b></a>
+</p>
+
 ## Install
 
 ```bash

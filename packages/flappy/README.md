@@ -2,6 +2,12 @@
 
 Flappy-style tap-to-flap for [load-games](https://github.com/viren-vii/load-games).
 
+<!-- preview-block -->
+<p>
+  <a href="https://viren-vii.github.io/load-games/?game=flappy"><img src="https://raw.githubusercontent.com/viren-vii/load-games/main/packages/flappy/preview.svg" alt="flappy game preview" width="320" /></a><br/>
+  <a href="https://viren-vii.github.io/load-games/?game=flappy"><b>▶ Try it live</b></a>
+</p>
+
 ## Install
 
 ```bash

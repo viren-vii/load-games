@@ -2,6 +2,12 @@
 
 Endless dino-style runner for [load-games](https://github.com/viren-vii/load-games).
 
+<!-- preview-block -->
+<p>
+  <a href="https://viren-vii.github.io/load-games/?game=runner"><img src="https://raw.githubusercontent.com/viren-vii/load-games/main/packages/runner/preview.svg" alt="runner game preview" width="320" /></a><br/>
+  <a href="https://viren-vii.github.io/load-games/?game=runner"><b>▶ Try it live</b></a>
+</p>
+
 ## Install
 
 ```bash

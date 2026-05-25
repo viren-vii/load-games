@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { LoadingGame, type GameHandle, type EngineClass } from '@load-games/react'
-import type { DismissReason } from '@load-games/core'
+import type { DismissReason, GameLabels, GameTheme } from '@load-games/core'
+import { DEFAULT_LABELS, DEFAULT_THEME } from '@load-games/core'
 import { QrButton } from './QrButton'
 import { SnakeEngine } from '@load-games/snake'
 import { FlappyEngine } from '@load-games/flappy'
@@ -8,16 +9,21 @@ import { BreakoutEngine } from '@load-games/breakout'
 import { PongEngine } from '@load-games/pong'
 import { SpaceInvadersEngine } from '@load-games/space-invaders'
 import { RunnerEngine } from '@load-games/runner'
-import type { GameTheme } from '@load-games/core'
-import { DEFAULT_THEME } from '@load-games/core'
 
 type GameId = 'snake' | 'flappy' | 'breakout' | 'pong' | 'space-invaders' | 'runner'
+type SkipPosition = 'top' | 'bottom' | 'right'
 
 interface Config {
   width: number
   height: number
   speed: number
   theme: GameTheme
+  labels: GameLabels
+  returnButton: boolean
+  // LoadingGame-only:
+  skipButton: boolean
+  skipLabel: string
+  skipPosition: SkipPosition
 }
 
 const DEFAULTS: Config = {
@@ -25,6 +31,11 @@ const DEFAULTS: Config = {
   height: 320,
   speed: 5,
   theme: { ...DEFAULT_THEME },
+  labels: { ...DEFAULT_LABELS },
+  returnButton: true,
+  skipButton: true,
+  skipLabel: 'Skip',
+  skipPosition: 'bottom',
 }
 
 const GAME_META: Record<GameId, { label: string; controls: string; engine: EngineClass }> = {
@@ -36,17 +47,33 @@ const GAME_META: Record<GameId, { label: string; controls: string; engine: Engin
   runner:         { label: 'Runner',         controls: 'Space / tap to jump',         engine: RunnerEngine },
 }
 
+const GAME_IDS = Object.keys(GAME_META) as GameId[]
+
+function readGameFromUrl(): GameId | null {
+  if (typeof window === 'undefined') return null
+  const v = new URLSearchParams(window.location.search).get('game')
+  return v && GAME_IDS.includes(v as GameId) ? (v as GameId) : null
+}
+
 export function App() {
-  const [active, setActive] = useState<GameId>('snake')
+  const [active, setActive] = useState<GameId>(() => readGameFromUrl() ?? 'snake')
   const [cfg, setCfg] = useState<Config>(DEFAULTS)
   // Debounced copy used in the LoadingGame `key`. Without this, every slider tick
-  // would remount the game (engine captures config on mount, so width/height/speed
-  // need a remount to apply). Direct re-keying caused visible flicker.
+  // would remount the game.
   const [appliedCfg, setAppliedCfg] = useState<Config>(DEFAULTS)
   useEffect(() => {
     const t = setTimeout(() => setAppliedCfg(cfg), 250)
     return () => clearTimeout(t)
   }, [cfg])
+
+  // Keep ?game= in sync with the active tab so the URL is always shareable.
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (url.searchParams.get('game') !== active) {
+      url.searchParams.set('game', active)
+      window.history.replaceState({}, '', url)
+    }
+  }, [active])
 
   const [score, setScore] = useState(0)
   const [events, setEvents] = useState<string[]>([])
@@ -60,9 +87,10 @@ export function App() {
 
   const set = <K extends keyof Config>(key: K, val: Config[K]) =>
     setCfg(prev => ({ ...prev, [key]: val }))
-
   const setTheme = (key: keyof GameTheme, val: string) =>
     setCfg(prev => ({ ...prev, theme: { ...prev.theme, [key]: val } }))
+  const setLabel = (key: keyof GameLabels, val: string) =>
+    setCfg(prev => ({ ...prev, labels: { ...prev.labels, [key]: val } }))
 
   const handleScore = (n: number) => { setScore(n); log(`onScore(${n})`) }
   const handleGameOver = (n: number) => { setScore(n); log(`onGameOver(${n})`) }
@@ -73,7 +101,6 @@ export function App() {
 
   const resetGameCycle = () => { setReady(false); setMounted(true); setScore(0); setEvents([]); setLoadingMs(null) }
 
-  // Simulated loading countdown.
   useEffect(() => {
     if (loadingMs === null || loadingMs <= 0) return
     const id = setInterval(() => {
@@ -94,7 +121,7 @@ export function App() {
       </header>
 
       <div style={s.tabs}>
-        {(Object.keys(GAME_META) as GameId[]).map(id => (
+        {GAME_IDS.map(id => (
           <button
             key={id}
             style={{ ...s.tab, ...(active === id ? s.tabActive : {}) }}
@@ -111,24 +138,25 @@ export function App() {
             {mounted
               ? <LoadingGame
                   ref={gameRef}
-                  // Debounced cfg — slider drags no longer rapidly remount.
-                  key={`${active}|${appliedCfg.width}|${appliedCfg.height}|${appliedCfg.speed}|${appliedCfg.theme.bg}|${appliedCfg.theme.primary}|${appliedCfg.theme.accent}|${appliedCfg.theme.text}`}
+                  // Re-key on any config change (debounced) so the engine picks up new mount-time props.
+                  key={JSON.stringify({ active, c: appliedCfg })}
                   engine={GAME_META[active]!.engine}
                   width={appliedCfg.width}
                   height={appliedCfg.height}
                   speed={appliedCfg.speed}
                   theme={appliedCfg.theme}
+                  labels={appliedCfg.labels}
+                  returnButton={appliedCfg.returnButton}
                   ready={ready}
-                  skipButton
-                  skipPosition="bottom"
+                  skipButton={appliedCfg.skipButton}
+                  skipLabel={appliedCfg.skipLabel}
+                  skipPosition={appliedCfg.skipPosition}
                   onScore={handleScore}
                   onGameOver={handleGameOver}
                   onReady={handleReady}
                   onDismiss={handleDismiss}
                   onPause={handlePause}
                   onResume={handleResume}
-                  // Border on the canvas itself (not a wrapper), so the skip button
-                  // sits cleanly below outside any border.
                   style={{ ...s.canvas, border: '1px solid #222', borderRadius: 4 }}
                   skipButtonStyle={{ color: '#22c55e' }}
                   wrapperStyle={{ gap: 12 }}
@@ -153,9 +181,9 @@ export function App() {
         </div>
 
         <div style={s.panel}>
-          <Section label="Loading Simulator">
+          <Section label="Loading Simulator" defaultOpen>
             <div style={s.simulatorNote}>
-              Simulates your AI/work finishing while user plays.<br />
+              Simulates your AI / work finishing while user plays.<br />
               At "ready", the next game-over becomes "tap to continue".
             </div>
             <div style={s.rowWrap}>
@@ -177,13 +205,7 @@ export function App() {
               </button>
             </div>
             <div style={s.rowWrap}>
-              <button
-                style={s.simBtn}
-                onClick={() => gameRef.current?.dismiss()}
-                disabled={!mounted}
-              >
-                force dismiss()
-              </button>
+              <button style={s.simBtn} onClick={() => gameRef.current?.dismiss()} disabled={!mounted}>force dismiss()</button>
             </div>
             <div style={s.rowWrap}>
               <button style={s.simBtn} onClick={() => gameRef.current?.pause()} disabled={!mounted}>pause()</button>
@@ -197,13 +219,10 @@ export function App() {
             </div>
           </Section>
 
-          <Section label="Canvas">
+          <Section label="Canvas / Gameplay" defaultOpen>
             <Slider label="width"  value={cfg.width}  min={160} max={600} step={8}  onChange={v => set('width', v)} />
             <Slider label="height" value={cfg.height} min={160} max={600} step={8}  onChange={v => set('height', v)} />
-          </Section>
-
-          <Section label="Gameplay">
-            <Slider label="speed" value={cfg.speed} min={1} max={10} step={1} onChange={v => set('speed', v)} />
+            <Slider label="speed"  value={cfg.speed}  min={1}   max={10}  step={1}  onChange={v => set('speed', v)} />
           </Section>
 
           <Section label="Theme">
@@ -211,6 +230,28 @@ export function App() {
             <ColorRow label="primary" value={cfg.theme.primary} onChange={v => setTheme('primary', v)} />
             <ColorRow label="accent"  value={cfg.theme.accent}  onChange={v => setTheme('accent', v)} />
             <ColorRow label="text"    value={cfg.theme.text}    onChange={v => setTheme('text', v)} />
+          </Section>
+
+          <Section label="Labels (i18n / branding)">
+            <TextRow label="idleStart"   value={cfg.labels.idleStart}   onChange={v => setLabel('idleStart', v)} />
+            <TextRow label="idleReady"   value={cfg.labels.idleReady}   onChange={v => setLabel('idleReady', v)} />
+            <TextRow label="gameOver"    value={cfg.labels.gameOver}    onChange={v => setLabel('gameOver', v)} />
+            <TextRow label="tapRestart"  value={cfg.labels.tapRestart}  onChange={v => setLabel('tapRestart', v)} />
+            <TextRow label="tapContinue" value={cfg.labels.tapContinue} onChange={v => setLabel('tapContinue', v)} />
+            <TextRow label="readyBadge"  value={cfg.labels.readyBadge}  onChange={v => setLabel('readyBadge', v)} />
+            <TextRow label="tapServe"    value={cfg.labels.tapServe}    onChange={v => setLabel('tapServe', v)} />
+          </Section>
+
+          <Section label="Behavior">
+            <ToggleRow label="returnButton" value={cfg.returnButton} onChange={v => set('returnButton', v)} hint="in-canvas top-right exit" />
+          </Section>
+
+          <Section label="Skip Button (LoadingGame)">
+            <ToggleRow label="skipButton" value={cfg.skipButton} onChange={v => set('skipButton', v)} hint="render external Skip button" />
+            <TextRow label="skipLabel" value={cfg.skipLabel} onChange={v => set('skipLabel', v)} />
+            <SelectRow label="skipPosition" value={cfg.skipPosition}
+              options={['top','bottom','right'] as const}
+              onChange={v => set('skipPosition', v as SkipPosition)} />
           </Section>
 
           <button style={s.reset} onClick={() => { setCfg(DEFAULTS); resetGameCycle() }}>
@@ -222,12 +263,12 @@ export function App() {
   )
 }
 
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
+function Section({ label, defaultOpen, children }: { label: string; defaultOpen?: boolean; children: React.ReactNode }) {
   return (
-    <div style={s.section}>
-      <div style={s.sectionLabel}>{label}</div>
-      {children}
-    </div>
+    <details open={defaultOpen} style={s.section}>
+      <summary style={s.sectionLabel}>{label}</summary>
+      <div style={s.sectionBody}>{children}</div>
+    </details>
   )
 }
 
@@ -253,6 +294,42 @@ function ColorRow({ label, value, onChange }: {
       <span style={s.rowLabel}>{label}</span>
       <input type="color" value={value} onChange={e => onChange(e.target.value)} style={s.colorPicker} />
       <span style={s.rowVal}>{value}</span>
+    </div>
+  )
+}
+
+function TextRow({ label, value, onChange }: {
+  label: string; value: string; onChange: (v: string) => void
+}) {
+  return (
+    <div style={s.rowText}>
+      <span style={s.rowLabelText}>{label}</span>
+      <input type="text" value={value} onChange={e => onChange(e.target.value)} style={s.textInput} />
+    </div>
+  )
+}
+
+function ToggleRow({ label, value, onChange, hint }: {
+  label: string; value: boolean; onChange: (v: boolean) => void; hint?: string
+}) {
+  return (
+    <label style={s.toggleRow}>
+      <input type="checkbox" checked={value} onChange={e => onChange(e.target.checked)} style={s.checkbox} />
+      <span style={s.toggleLabel}>{label}</span>
+      {hint && <span style={s.toggleHint}>— {hint}</span>}
+    </label>
+  )
+}
+
+function SelectRow<T extends string>({ label, value, options, onChange }: {
+  label: string; value: T; options: readonly T[]; onChange: (v: T) => void
+}) {
+  return (
+    <div style={s.rowText}>
+      <span style={s.rowLabelText}>{label}</span>
+      <select value={value} onChange={e => onChange(e.target.value as T)} style={s.select}>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
     </div>
   )
 }
@@ -289,15 +366,37 @@ const s = {
   },
   logEmpty: { color: '#333' },
   logLine: { lineHeight: 1.6 },
-  panel: { display: 'flex', flexDirection: 'column' as const, gap: 0, minWidth: 260 },
-  section: { borderBottom: '1px solid #1a1a1a', paddingBottom: 12, marginBottom: 12 },
-  sectionLabel: { fontSize: 10, color: '#444', letterSpacing: 2, textTransform: 'uppercase' as const, marginBottom: 10 },
+  panel: { display: 'flex', flexDirection: 'column' as const, gap: 0, minWidth: 280 },
+  section: {
+    borderBottom: '1px solid #1a1a1a', paddingBottom: 8, marginBottom: 8,
+  },
+  sectionLabel: {
+    fontSize: 10, color: '#666', letterSpacing: 2, textTransform: 'uppercase' as const,
+    cursor: 'pointer', padding: '8px 0', userSelect: 'none' as const, listStyle: 'revert',
+  },
+  sectionBody: { marginTop: 6 },
   row: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 },
   rowWrap: { display: 'flex', gap: 6, marginBottom: 6 },
+  rowText: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 },
   rowLabel: { fontSize: 12, color: '#666', width: 56, flexShrink: 0 },
+  rowLabelText: { fontSize: 11, color: '#666', width: 90, flexShrink: 0 },
   rowVal: { fontSize: 11, color: '#555', width: 48 },
   slider: { accentColor: '#22c55e', flex: 1 },
   colorPicker: { width: 32, height: 24, border: 'none', background: 'none', cursor: 'pointer', padding: 0 },
+  textInput: {
+    flex: 1, background: '#0a0a0a', border: '1px solid #222', color: '#ccc',
+    padding: '3px 6px', fontFamily: 'monospace', fontSize: 11, borderRadius: 2,
+  },
+  select: {
+    flex: 1, background: '#0a0a0a', border: '1px solid #222', color: '#ccc',
+    padding: '3px 6px', fontFamily: 'monospace', fontSize: 11, borderRadius: 2,
+  },
+  toggleRow: {
+    display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, cursor: 'pointer' as const,
+  },
+  checkbox: { accentColor: '#22c55e' },
+  toggleLabel: { fontSize: 11, color: '#aaa' },
+  toggleHint: { fontSize: 10, color: '#555' },
   simulatorNote: { fontSize: 11, color: '#555', lineHeight: 1.5, marginBottom: 10 },
   simBtn: {
     background: 'transparent', border: '1px solid #333', color: '#aaa',

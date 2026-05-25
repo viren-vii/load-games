@@ -2,6 +2,12 @@
 
 Space Invaders for [load-games](https://github.com/viren-vii/load-games).
 
+<!-- preview-block -->
+<p>
+  <a href="https://viren-vii.github.io/load-games/?game=space-invaders"><img src="https://raw.githubusercontent.com/viren-vii/load-games/main/packages/space-invaders/preview.svg" alt="space-invaders game preview" width="320" /></a><br/>
+  <a href="https://viren-vii.github.io/load-games/?game=space-invaders"><b>▶ Try it live</b></a>
+</p>
+
 ## Install
 
 ```bash

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" role="img" aria-label="Pong game preview">
+  <rect width="320" height="240" fill="#0a0a0a"/>
+  <!-- centerline -->
+  <line x1="160" y1="0" x2="160" y2="240" stroke="#ffffff" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="6 6"/>
+  <!-- player paddle (left, primary) -->
+  <rect x="12" y="100" width="10" height="55" fill="#ffffff"/>
+  <!-- ai paddle (right, accent) -->
+  <rect x="298" y="80" width="10" height="55" fill="#22c55e"/>
+  <!-- ball -->
+  <rect x="180" y="120" width="8" height="8" fill="#ffffff"/>
+  <!-- scores -->
+  <text x="80" y="32" text-anchor="middle" font-family="ui-monospace, monospace" font-weight="bold" font-size="20" fill="#ffffff">3</text>
+  <text x="240" y="32" text-anchor="middle" font-family="ui-monospace, monospace" font-weight="bold" font-size="20" fill="#22c55e">2</text>
+  <text x="32" y="232" font-family="ui-monospace, monospace" font-size="10" fill="#ffffff" opacity="0.33">YOU</text>
+  <text x="288" y="232" text-anchor="end" font-family="ui-monospace, monospace" font-size="10" fill="#ffffff" opacity="0.33">AI</text>
+</svg>

@@ -2,7 +2,18 @@
 
 Tiny canvas games designed to fill loading states, empty states, and idle screens. Framework-agnostic core + optional React wrapper. Each game is its own package — install only what you ship.
 
-> Status: pre-release. First publish targets `0.1.0`.
+**[▶ Live demo](https://viren-vii.github.io/load-games/)** · **[npm](https://www.npmjs.com/org/load-games)** · MIT
+
+<p>
+  <a href="https://viren-vii.github.io/load-games/?game=snake"><img src="packages/snake/preview.svg" alt="Snake" width="150" /></a>
+  <a href="https://viren-vii.github.io/load-games/?game=flappy"><img src="packages/flappy/preview.svg" alt="Flappy" width="150" /></a>
+  <a href="https://viren-vii.github.io/load-games/?game=breakout"><img src="packages/breakout/preview.svg" alt="Breakout" width="150" /></a>
+  <a href="https://viren-vii.github.io/load-games/?game=pong"><img src="packages/pong/preview.svg" alt="Pong" width="200" /></a>
+  <a href="https://viren-vii.github.io/load-games/?game=runner"><img src="packages/runner/preview.svg" alt="Runner" width="200" /></a>
+  <a href="https://viren-vii.github.io/load-games/?game=space-invaders"><img src="packages/space-invaders/preview.svg" alt="Space Invaders" width="150" /></a>
+</p>
+
+Each preview links to the live demo with that game pre-selected.
 
 ## Packages
 

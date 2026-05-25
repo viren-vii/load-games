@@ -2,6 +2,12 @@
 
 Classic snake for [load-games](https://github.com/viren-vii/load-games).
 
+<!-- preview-block -->
+<p>
+  <a href="https://viren-vii.github.io/load-games/?game=snake"><img src="https://raw.githubusercontent.com/viren-vii/load-games/main/packages/snake/preview.svg" alt="snake game preview" width="320" /></a><br/>
+  <a href="https://viren-vii.github.io/load-games/?game=snake"><b>▶ Try it live</b></a>
+</p>
+
 ## Install
 
 ```bash

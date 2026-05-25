@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="load-games — tiny canvas games for loading screens">
+  <rect width="1200" height="630" fill="#0a0a0a"/>
+
+  <!-- subtle dotted grid -->
+  <g fill="#1a1a1a">
+    <circle cx="100" cy="100" r="2"/><circle cx="200" cy="100" r="2"/><circle cx="300" cy="100" r="2"/><circle cx="400" cy="100" r="2"/><circle cx="500" cy="100" r="2"/><circle cx="600" cy="100" r="2"/><circle cx="700" cy="100" r="2"/><circle cx="800" cy="100" r="2"/><circle cx="900" cy="100" r="2"/><circle cx="1000" cy="100" r="2"/><circle cx="1100" cy="100" r="2"/>
+    <circle cx="100" cy="200" r="2"/><circle cx="200" cy="200" r="2"/><circle cx="300" cy="200" r="2"/><circle cx="400" cy="200" r="2"/><circle cx="500" cy="200" r="2"/><circle cx="600" cy="200" r="2"/><circle cx="700" cy="200" r="2"/><circle cx="800" cy="200" r="2"/><circle cx="900" cy="200" r="2"/><circle cx="1000" cy="200" r="2"/><circle cx="1100" cy="200" r="2"/>
+    <circle cx="100" cy="300" r="2"/><circle cx="200" cy="300" r="2"/><circle cx="300" cy="300" r="2"/><circle cx="400" cy="300" r="2"/><circle cx="500" cy="300" r="2"/><circle cx="600" cy="300" r="2"/><circle cx="700" cy="300" r="2"/><circle cx="800" cy="300" r="2"/><circle cx="900" cy="300" r="2"/><circle cx="1000" cy="300" r="2"/><circle cx="1100" cy="300" r="2"/>
+    <circle cx="100" cy="400" r="2"/><circle cx="200" cy="400" r="2"/><circle cx="300" cy="400" r="2"/><circle cx="400" cy="400" r="2"/><circle cx="500" cy="400" r="2"/><circle cx="600" cy="400" r="2"/><circle cx="700" cy="400" r="2"/><circle cx="800" cy="400" r="2"/><circle cx="900" cy="400" r="2"/><circle cx="1000" cy="400" r="2"/><circle cx="1100" cy="400" r="2"/>
+    <circle cx="100" cy="500" r="2"/><circle cx="200" cy="500" r="2"/><circle cx="300" cy="500" r="2"/><circle cx="400" cy="500" r="2"/><circle cx="500" cy="500" r="2"/><circle cx="600" cy="500" r="2"/><circle cx="700" cy="500" r="2"/><circle cx="800" cy="500" r="2"/><circle cx="900" cy="500" r="2"/><circle cx="1000" cy="500" r="2"/><circle cx="1100" cy="500" r="2"/>
+  </g>
+
+  <!-- title -->
+  <text x="80" y="220" font-family="ui-monospace, SFMono-Regular, monospace" font-weight="700" font-size="92" fill="#ffffff" letter-spacing="-2">load-games</text>
+  <text x="80" y="290" font-family="ui-monospace, monospace" font-size="32" fill="#22c55e">tiny canvas games for loading screens</text>
+
+  <!-- features -->
+  <g font-family="ui-monospace, monospace" font-size="20" fill="#888">
+    <text x="80" y="370">▸ 6 games · ~2 KB gzip each · ESM + CJS + types</text>
+    <text x="80" y="402">▸ Framework-agnostic core · React wrapper included</text>
+    <text x="80" y="434">▸ Graceful handoff: content arrives without interrupting play</text>
+    <text x="80" y="466">▸ Mobile-ready · accessible · MIT</text>
+  </g>
+
+  <!-- mini-game tiles on right side -->
+  <!-- snake tile -->
+  <g transform="translate(820, 80)">
+    <rect width="140" height="140" fill="#0a0a0a" stroke="#22c55e" stroke-width="1"/>
+    <rect x="20" y="60" width="10" height="10" fill="#22c55e"/>
+    <rect x="32" y="60" width="10" height="10" fill="#22c55e"/>
+    <rect x="44" y="60" width="10" height="10" fill="#22c55e"/>
+    <rect x="56" y="60" width="10" height="10" fill="#ffffff"/>
+    <rect x="100" y="40" width="10" height="10" fill="#22c55e"/>
+    <text x="70" y="128" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="#22c55e">SNAKE</text>
+  </g>
+  <!-- flappy tile -->
+  <g transform="translate(980, 80)">
+    <rect width="140" height="140" fill="#0a0a0a" stroke="#22c55e" stroke-width="1"/>
+    <rect x="70" y="0" width="18" height="50" fill="#22c55e"/>
+    <rect x="70" y="90" width="18" height="50" fill="#22c55e"/>
+    <circle cx="42" cy="70" r="6" fill="#ffffff"/>
+    <text x="70" y="128" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="#22c55e">FLAPPY</text>
+  </g>
+  <!-- breakout tile -->
+  <g transform="translate(820, 240)">
+    <rect width="140" height="140" fill="#0a0a0a" stroke="#22c55e" stroke-width="1"/>
+    <g fill="#22c55e">
+      <rect x="10" y="20" width="22" height="6"/><rect x="34" y="20" width="22" height="6"/><rect x="58" y="20" width="22" height="6"/><rect x="82" y="20" width="22" height="6"/><rect x="106" y="20" width="22" height="6"/>
+    </g>
+    <g fill="#ffffff" opacity="0.6">
+      <rect x="10" y="32" width="22" height="6"/><rect x="58" y="32" width="22" height="6"/><rect x="106" y="32" width="22" height="6"/>
+    </g>
+    <rect x="55" y="100" width="30" height="6" fill="#ffffff"/>
+    <circle cx="80" cy="80" r="4" fill="#22c55e"/>
+    <text x="70" y="128" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="#22c55e">BREAKOUT</text>
+  </g>
+  <!-- pong tile -->
+  <g transform="translate(980, 240)">
+    <rect width="140" height="140" fill="#0a0a0a" stroke="#22c55e" stroke-width="1"/>
+    <line x1="70" y1="20" x2="70" y2="125" stroke="#ffffff" stroke-opacity="0.2" stroke-dasharray="3 3"/>
+    <rect x="6" y="50" width="5" height="30" fill="#ffffff"/>
+    <rect x="129" y="40" width="5" height="30" fill="#22c55e"/>
+    <rect x="80" y="68" width="5" height="5" fill="#ffffff"/>
+    <text x="70" y="128" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="#22c55e">PONG</text>
+  </g>
+  <!-- runner tile -->
+  <g transform="translate(820, 400)">
+    <rect width="140" height="140" fill="#0a0a0a" stroke="#22c55e" stroke-width="1"/>
+    <rect x="0" y="105" width="140" height="20" fill="#ffffff" fill-opacity="0.2"/>
+    <rect x="0" y="105" width="140" height="1" fill="#ffffff" fill-opacity="0.53"/>
+    <rect x="20" y="80" width="14" height="20" fill="#ffffff"/>
+    <rect x="80" y="92" width="10" height="13" fill="#22c55e"/>
+    <rect x="110" y="88" width="10" height="17" fill="#22c55e"/>
+    <text x="70" y="128" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="#22c55e">RUNNER</text>
+  </g>
+  <!-- space invaders tile -->
+  <g transform="translate(980, 400)">
+    <rect width="140" height="140" fill="#0a0a0a" stroke="#22c55e" stroke-width="1"/>
+    <g fill="#22c55e">
+      <rect x="15" y="20" width="12" height="6"/><rect x="35" y="20" width="12" height="6"/><rect x="55" y="20" width="12" height="6"/><rect x="75" y="20" width="12" height="6"/><rect x="95" y="20" width="12" height="6"/>
+    </g>
+    <g fill="#ffffff">
+      <rect x="15" y="32" width="12" height="6"/><rect x="35" y="32" width="12" height="6"/><rect x="75" y="32" width="12" height="6"/><rect x="95" y="32" width="12" height="6"/>
+    </g>
+    <g fill="#22c55e">
+      <rect x="35" y="44" width="12" height="6"/><rect x="55" y="44" width="12" height="6"/><rect x="75" y="44" width="12" height="6"/>
+    </g>
+    <rect x="62" y="105" width="16" height="6" fill="#ffffff"/>
+    <rect x="58" y="111" width="24" height="3" fill="#ffffff"/>
+    <text x="70" y="128" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="#22c55e">INVADERS</text>
+  </g>
+
+  <!-- bottom strip: install hint -->
+  <rect x="80" y="540" width="800" height="40" fill="#1a1a1a" rx="4"/>
+  <text x="100" y="567" font-family="ui-monospace,monospace" font-size="20" fill="#22c55e">$ npm install @load-games/react @load-games/snake</text>
+</svg>

@@ -3,10 +3,59 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>load-games demo</title>
+
+    <!-- Primary SEO -->
+    <title>load-games — tiny canvas games for loading screens</title>
+    <meta name="description" content="A library of tiny, framework-agnostic canvas games (snake, flappy, breakout, pong, runner, space-invaders) you embed during loading states. ~2 KB gzip per game, React wrapper included, full graceful-handoff API so content arrives without interrupting play." />
+    <meta name="keywords" content="loading game, loader, canvas game, snake, flappy, breakout, pong, react, typescript, javascript, npm" />
+    <meta name="author" content="Viren Bhosale" />
+    <link rel="canonical" href="https://viren-vii.github.io/load-games/" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- Open Graph (Facebook / LinkedIn / generic) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="load-games" />
+    <meta property="og:title" content="load-games — tiny canvas games for loading screens" />
+    <meta property="og:description" content="A library of tiny, framework-agnostic canvas games you embed during loading states. ~2 KB gzip per game. React wrapper included. Graceful handoff so content arrives without interrupting play." />
+    <meta property="og:url" content="https://viren-vii.github.io/load-games/" />
+    <meta property="og:image" content="https://viren-vii.github.io/load-games/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="load-games — tiny canvas games for loading screens" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="load-games — tiny canvas games for loading screens" />
+    <meta name="twitter:description" content="A library of tiny canvas games you embed during loading states. ~2 KB gzip per game." />
+    <meta name="twitter:image" content="https://viren-vii.github.io/load-games/og-image.svg" />
+
+    <!-- Favicon (inline SVG so no extra file needed) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230a0a0a'/%3E%3Crect x='3' y='7' width='2' height='2' fill='%23fff'/%3E%3Crect x='6' y='7' width='2' height='2' fill='%2322c55e'/%3E%3Crect x='9' y='7' width='2' height='2' fill='%2322c55e'/%3E%3Crect x='12' y='4' width='2' height='2' fill='%2322c55e'/%3E%3C/svg%3E" />
+
+    <!-- JSON-LD structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "load-games",
+      "operatingSystem": "Any",
+      "applicationCategory": "DeveloperApplication",
+      "url": "https://viren-vii.github.io/load-games/",
+      "author": { "@type": "Person", "name": "Viren Bhosale" },
+      "license": "MIT",
+      "offers": { "@type": "Offer", "price": "0" },
+      "description": "Tiny canvas games for loading screens. Framework-agnostic engines (~2 KB gzip each) plus a React wrapper. Includes a graceful handoff API so content can arrive without interrupting play."
+    }
+    </script>
+
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      body { background: #0a0a0a; color: #fff; font-family: monospace; min-height: 100dvh; }
+      html, body { background: #0a0a0a; color: #fff; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; min-height: 100dvh; -webkit-font-smoothing: antialiased; }
+      :focus-visible { outline: 2px solid #22c55e; outline-offset: 2px; }
+      ::selection { background: #22c55e; color: #0a0a0a; }
+      /* Hide scrollbar arrow on <details><summary> for the panel sections */
+      summary::marker { color: #444; }
     </style>
   </head>
   <body>
