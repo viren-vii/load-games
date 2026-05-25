@@ -1,6 +1,6 @@
 {
   "name": "@load-games/flappy",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Flappy game engine for load-games. Canvas-based, framework-agnostic.",
   "keywords": [
     "game",
