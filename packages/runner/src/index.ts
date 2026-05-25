@@ -50,7 +50,8 @@ export class RunnerEngine extends BaseEngine {
     this.score = 0
     this.lastEmittedScore = 0
     this.elapsed = 0
-    this.spawnTimer = 0
+    // 1.5s grace before the first obstacle spawns — player gets to settle in.
+    this.spawnTimer = 1500
     this.speed = this.baseSpeed
   }
 

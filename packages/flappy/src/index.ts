@@ -3,13 +3,15 @@ import type { GameConfig } from '@load-games/core'
 
 interface Pipe { x: number; gapY: number; scored?: boolean }
 
-const GRAVITY = 1800
-const FLAP_VEL = -480
+const GRAVITY = 1500           // softened from 1800 — easier vertical control
+const FLAP_VEL = -460          // softened from -480 (paired with lower gravity)
+const FIRST_FLAP_VEL = -560    // beginGame gives an extra-tall first flap so the bird arcs high before falling
 const PIPE_WIDTH = 40
-const GAP_HEIGHT = 120
+const GAP_HEIGHT = 130         // widened from 120 for forgiveness
 const PIPE_SPEED_BASE = 120
 const BIRD_X_RATIO = 0.25
 const BIRD_SIZE = 18
+const FIRST_PIPE_DELAY_MS = 2500 // first pipe spawns later so player has flap-practice time
 
 export class FlappyEngine extends BaseEngine {
   protected readonly gameName = 'Flappy'
@@ -43,11 +45,17 @@ export class FlappyEngine extends BaseEngine {
     this.birdVel = 0
     this.pipes = []
     this.score = 0
-    this.pipeTimer = this.pipeInterval
+    this.pipeTimer = FIRST_PIPE_DELAY_MS
   }
 
   private flap() {
-    if (this.state === 'idle') { this.beginGame(); this.birdVel = FLAP_VEL; return }
+    if (this.state === 'idle') {
+      this.beginGame()
+      // Extra-tall first flap + delayed first pipe combine to give the player a
+      // ~2 second acclimation window before any real obstacle threatens.
+      this.birdVel = FIRST_FLAP_VEL
+      return
+    }
     if (this.state === 'gameover') { this.tryGameOverRestart(() => { this.reset(); this.restartGame() }); return }
     if (this.state === 'running') this.birdVel = FLAP_VEL
   }

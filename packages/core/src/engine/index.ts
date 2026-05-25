@@ -1,11 +1,17 @@
 import { GameLoop } from '../timing/index.js'
-import type { GameConfig, GameState, GameTheme } from '../types/index.js'
-import { DEFAULT_CONFIG, DEFAULT_THEME } from '../types/index.js'
+import type { DismissReason, GameConfig, GameLabels, GameState, GameTheme } from '../types/index.js'
+import { DEFAULT_CONFIG, DEFAULT_LABELS, DEFAULT_THEME } from '../types/index.js'
+
+const BADGE_PAD_X = 6
+const BADGE_PAD_Y = 4
+const BADGE_HEIGHT = 16
+const BADGE_MARGIN = 6
 
 export abstract class BaseEngine {
   protected readonly canvas: HTMLCanvasElement
   protected readonly ctx: CanvasRenderingContext2D
   protected readonly theme: GameTheme
+  protected readonly labels: GameLabels
   protected readonly config: Required<Pick<GameConfig, 'speed'>> & GameConfig
   protected loop: GameLoop
   private _state: GameState = 'idle'
@@ -13,6 +19,8 @@ export abstract class BaseEngine {
   private _dismissed = false
   private visibilityHandler: () => void
   private intersectionObserver: IntersectionObserver
+  private onCanvasPointerUp: (e: PointerEvent) => void
+  private onCanvasKeyDown: (e: KeyboardEvent) => void
 
   protected abstract readonly gameName: string
   protected abstract readonly controlHints: string[]
@@ -23,6 +31,7 @@ export abstract class BaseEngine {
     if (!ctx) throw new Error('Canvas 2D context unavailable')
     this.ctx = ctx
     this.theme = { ...DEFAULT_THEME, ...config.theme }
+    this.labels = { ...DEFAULT_LABELS, ...config.labels }
     this.config = { ...DEFAULT_CONFIG, ...config }
     this.loop = new GameLoop(this.tick)
     this.setupCanvas()
@@ -38,6 +47,36 @@ export abstract class BaseEngine {
       },
       { threshold: 0.1 }
     )
+    // Intercept clicks that land within the return-button area BEFORE the InputManager's
+    // pointerup listener fires. Uses event.stopImmediatePropagation() to suppress the
+    // tap event going through to the subclass's game logic.
+    this.onCanvasPointerUp = (e: PointerEvent) => {
+      if (this.hitTestReturnButton(e)) {
+        e.stopImmediatePropagation()
+        this.dismissWith('user')
+      } else if (this._state === 'idle' && this._ready) {
+        // Tap on idle while ready: skip the game entirely.
+        e.stopImmediatePropagation()
+        this.dismissWith('idle-ready')
+      }
+    }
+    // capture-phase so we run before InputManager's bubble-phase listener.
+    canvas.addEventListener('pointerup', this.onCanvasPointerUp, { capture: true })
+    // Escape key as a keyboard equivalent of the return button — accessibility for
+    // keyboard-only users. Only meaningful when ready+running; otherwise no-op.
+    this.onCanvasKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (this._ready && this._state === 'running') {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        this.dismissWith('user')
+      } else if (this._ready && this._state === 'idle') {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        this.dismissWith('idle-ready')
+      }
+    }
+    canvas.addEventListener('keydown', this.onCanvasKeyDown, { capture: true })
   }
 
   get state(): GameState { return this._state }
@@ -46,7 +85,6 @@ export abstract class BaseEngine {
   /** Subclasses must report current score. Pong returns player score; others return their primary counter. */
   abstract getScore(): number
 
-  /** Called by React wrapper — shows idle screen, waits for input. */
   start() {
     this._state = 'idle'
     document.addEventListener('visibilitychange', this.visibilityHandler)
@@ -54,13 +92,13 @@ export abstract class BaseEngine {
     this.loop.start()
   }
 
-  /** Called by game on first user input — transitions idle → running. */
+  /** Subclass tells the base "first user input received". Idle → running. */
   protected beginGame() {
     if (this._state !== 'idle') return
     this._state = 'running'
   }
 
-  /** Called by game on restart (after gameover) — skips idle screen. */
+  /** Subclass tells the base "user wants to play again". Skips idle screen. */
   protected restartGame() {
     this._state = 'running'
     this.loop.start()
@@ -70,18 +108,19 @@ export abstract class BaseEngine {
     if (this._state !== 'running') return
     this._state = 'paused'
     this.loop.stop()
+    this.config.onPause?.()
   }
 
   resume() {
     if (this._state !== 'paused') return
     this._state = 'running'
     this.loop.start()
+    this.config.onResume?.()
   }
 
   /**
-   * Host signals that the underlying work is done. Game keeps playing — a "ready"
-   * badge appears, and the next game-over offers "tap to continue" instead of restart.
-   * Idempotent.
+   * Host signals work is done. Game keeps playing; ready badge appears; next game-over
+   * offers "tap to continue" instead of restart. Idempotent.
    */
   signalReady() {
     if (this._ready) return
@@ -90,20 +129,24 @@ export abstract class BaseEngine {
   }
 
   /**
-   * Player chose to leave (tapped post-gameover continue prompt) OR host force-dismissed.
-   * Fires `onDismiss(score)` once. Host should unmount the canvas in response.
-   * Does NOT call destroy — that's the host's job after unmount.
+   * Host force-dismiss. Equivalent to `dismissWith('forced')`. Idempotent.
+   * The host should unmount the canvas in response to `onDismiss`. Does NOT call destroy.
    */
-  dismiss() {
+  dismiss() { this.dismissWith('forced') }
+
+  /** Internal: dismiss with a specific reason. Public-but-protected by convention. */
+  protected dismissWith(reason: DismissReason) {
     if (this._dismissed) return
     this._dismissed = true
-    this.config.onDismiss?.(this.getScore())
+    this.config.onDismiss?.(this.getScore(), reason)
   }
 
   destroy() {
     this.loop.stop()
     document.removeEventListener('visibilitychange', this.visibilityHandler)
     this.intersectionObserver.disconnect()
+    this.canvas.removeEventListener('pointerup', this.onCanvasPointerUp, { capture: true } as EventListenerOptions)
+    this.canvas.removeEventListener('keydown', this.onCanvasKeyDown, { capture: true } as EventListenerOptions)
   }
 
   protected setState(state: GameState) { this._state = state }
@@ -117,7 +160,7 @@ export abstract class BaseEngine {
    * If host has signalled ready, dismiss instead of restart. Otherwise run the supplied restart fn.
    */
   protected tryGameOverRestart(restart: () => void) {
-    if (this._ready) { this.dismiss(); return }
+    if (this._ready) { this.dismissWith('gameover'); return }
     restart()
   }
 
@@ -130,47 +173,68 @@ export abstract class BaseEngine {
     ctx.fillStyle = theme.text
     ctx.font = 'bold 18px monospace'
     ctx.textAlign = 'center'
-    ctx.fillText('GAME OVER', w / 2, h / 2 - 10)
+    ctx.fillText(this.labels.gameOver, w / 2, h / 2 - 10)
     ctx.font = '13px monospace'
     if (this._ready) {
-      // Pulsing accent — draw attention to dismissal prompt.
       const alpha = 0.6 + 0.4 * Math.sin(Date.now() / 300)
       ctx.fillStyle = theme.accent + Math.round(alpha * 255).toString(16).padStart(2, '0')
-      ctx.fillText(`${scoreText}  •  tap to continue →`, w / 2, h / 2 + 14)
+      ctx.fillText(`${scoreText}  •  ${this.labels.tapContinue}`, w / 2, h / 2 + 14)
     } else {
       ctx.fillStyle = theme.text
-      ctx.fillText(`${scoreText}  •  tap to restart`, w / 2, h / 2 + 14)
+      ctx.fillText(`${scoreText}  •  ${this.labels.tapRestart}`, w / 2, h / 2 + 14)
     }
     ctx.textAlign = 'left'
   }
 
-  private static readonly READY_LABEL = '● READY'
-  private static readonly READY_FONT = 'bold 10px monospace'
-  private readyTextW = 0 // cached after first measure; text + font are constant
+  private static readonly BADGE_FONT = 'bold 10px monospace'
+  private badgeTextW = 0
+  private badgeLabelCache = ''
 
-  /** Top-right badge shown during play once ready has been signalled. */
+  /**
+   * Top-right badge shown during play once ready has been signalled.
+   * Also serves as the in-canvas return button (clickable when running+ready and config.returnButton !== false).
+   */
   protected renderReadyBadge() {
     if (!this._ready) return
     const { ctx, theme } = this
     const w = this.width
     const alpha = 0.55 + 0.45 * Math.sin(Date.now() / 350)
     const alphaHex = Math.round(alpha * 255).toString(16).padStart(2, '0')
-    ctx.font = BaseEngine.READY_FONT
+    ctx.font = BaseEngine.BADGE_FONT
     ctx.textAlign = 'right'
-    if (!this.readyTextW) this.readyTextW = ctx.measureText(BaseEngine.READY_LABEL).width
-    const padX = 6, padY = 4
-    const boxW = this.readyTextW + padX * 2
-    const boxH = 16
-    const x = w - 6 - boxW
-    const y = 6
+    // Re-measure if label has changed (e.g., custom config.labels.readyBadge).
+    if (this.badgeLabelCache !== this.labels.readyBadge) {
+      this.badgeLabelCache = this.labels.readyBadge
+      this.badgeTextW = ctx.measureText(this.labels.readyBadge).width
+    }
+    const boxW = this.badgeTextW + BADGE_PAD_X * 2
+    const x = w - BADGE_MARGIN - boxW
+    const y = BADGE_MARGIN
     ctx.fillStyle = theme.bg + 'cc'
-    ctx.fillRect(x, y, boxW, boxH)
+    ctx.fillRect(x, y, boxW, BADGE_HEIGHT)
     ctx.strokeStyle = theme.accent + alphaHex
     ctx.lineWidth = 1
-    ctx.strokeRect(x + 0.5, y + 0.5, boxW - 1, boxH - 1)
+    ctx.strokeRect(x + 0.5, y + 0.5, boxW - 1, BADGE_HEIGHT - 1)
     ctx.fillStyle = theme.accent + alphaHex
-    ctx.fillText(BaseEngine.READY_LABEL, w - 6 - padX, y + boxH - padY - 1)
+    ctx.fillText(this.labels.readyBadge, w - BADGE_MARGIN - BADGE_PAD_X, y + BADGE_HEIGHT - BADGE_PAD_Y - 1)
     ctx.textAlign = 'left'
+  }
+
+  /**
+   * Hit-test a pointer event against the return-button bounds.
+   * Returns true if the click should dismiss the game instead of being forwarded as a tap.
+   */
+  private hitTestReturnButton(e: PointerEvent): boolean {
+    if (this.config.returnButton === false) return false
+    if (!this._ready || this._state !== 'running') return false
+    if (!this.badgeTextW) return false // hasn't been rendered yet
+    const rect = this.canvas.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const boxW = this.badgeTextW + BADGE_PAD_X * 2
+    const boxX = this.width - BADGE_MARGIN - boxW
+    const boxY = BADGE_MARGIN
+    return x >= boxX && x <= boxX + boxW && y >= boxY && y <= boxY + BADGE_HEIGHT
   }
 
   private setupCanvas() {
@@ -221,7 +285,9 @@ export abstract class BaseEngine {
     const alpha = 0.5 + 0.5 * Math.sin(Date.now() / 400)
     ctx.fillStyle = theme.accent + Math.round(alpha * 255).toString(16).padStart(2, '0')
     ctx.font = `bold ${hintSize + 1}px monospace`
-    ctx.fillText('tap / press any key to start', w / 2, h / 2 + this.controlHints.length * (hintSize + 6) + 16)
+    // Swap prompt when host has already signalled ready — let the player exit without playing.
+    const prompt = this._ready ? this.labels.idleReady : this.labels.idleStart
+    ctx.fillText(prompt, w / 2, h / 2 + this.controlHints.length * (hintSize + 6) + 16)
 
     ctx.textAlign = 'left'
     this.renderReadyBadge()

@@ -25,6 +25,29 @@ Each game depends only on `@load-games/core`. No cross-game imports.
 pnpm add @load-games/react @load-games/core @load-games/snake
 ```
 
+Bundled UX (canvas + external skip button):
+
+```tsx
+import { LoadingGame } from '@load-games/react'
+import { SnakeEngine } from '@load-games/snake'
+
+export function Loader({ done, content }) {
+  if (!showGame) return content
+  return (
+    <LoadingGame
+      engine={SnakeEngine}
+      width={320}
+      height={320}
+      ready={done}                             // your work is done
+      onDismiss={(score, reason) => setShowGame(false)}  // user tapped continue, or skipped
+      skipLabel="Skip — show me the content"   // optional
+    />
+  )
+}
+```
+
+Or compose your own UI around the raw canvas:
+
 ```tsx
 import { GameCanvas } from '@load-games/react'
 import { SnakeEngine } from '@load-games/snake'
@@ -50,6 +73,30 @@ const canvas = document.querySelector('canvas')!
 const engine = new SnakeEngine(canvas, { width: 320, height: 320 })
 engine.start()
 ```
+
+### Customizing labels
+
+Every visible string can be overridden — useful for i18n, brand voice, or per-app copy:
+
+```tsx
+<LoadingGame
+  engine={SnakeEngine}
+  ready={done}
+  labels={{
+    idleStart:   'tippe um zu starten',
+    idleReady:   'fertig · tippen zum fortfahren',
+    gameOver:    'VORBEI',
+    tapRestart:  'erneut tippen',
+    tapContinue: 'tippen für inhalt →',
+    readyBadge:  '● BEREIT',
+    tapServe:    'tippen zum aufschlag',
+  }}
+  skipLabel="Überspringen"
+  onDismiss={() => setShowGame(false)}
+/>
+```
+
+Missing keys fall back to defaults (English).
 
 ## The graceful-handoff problem
 
@@ -118,12 +165,44 @@ function AskAI({ prompt }: { prompt: string }) {
 
 | Callback | Fires |
 |---|---|
-| `onScore(n)` | Every score change (de-duplicated — won't fire if value unchanged) |
-| `onGameOver(n)` | When a life ends (player dies) |
+| `onScore(n)` | Score change (de-duplicated — won't fire if value unchanged) |
+| `onGameOver(n)` | A life ends (player dies) |
 | `onReady()` | Once — when host signals ready (analytics hook) |
-| `onDismiss(n)` | When player taps post-gameover continue prompt, OR `engine.dismiss()` called |
+| `onPause()` | Game pauses (tab hide, canvas off-screen, or `ref.pause()`) |
+| `onResume()` | Game resumes from paused |
+| `onDismiss(n, reason)` | Game exits. `reason` is `'user' \| 'gameover' \| 'idle-ready' \| 'forced'` |
+
+`onDismiss` reasons:
+- `user` — player tapped the in-canvas return button mid-play (or pressed Esc)
+- `gameover` — player died and tapped the "continue" prompt
+- `idle-ready` — content arrived before player started; player tapped to skip
+- `forced` — host called `engine.dismiss()` (timeout fallback, content-now button, etc)
 
 Inline callbacks are safe — the wrapper captures the latest via ref each render, so writing `onScore={n => setScore(n)}` directly does **not** recreate the engine.
+
+### Edge cases playbook
+
+These are the scenarios you'll hit when wiring a game into a real loading flow. Recommended pattern for each:
+
+**1. Long load — user might wait forever.** Add a timeout fallback so the canvas can't trap your UI:
+
+```tsx
+useEffect(() => {
+  if (!response) return
+  const t = setTimeout(() => gameRef.current?.dismiss(), 30_000)
+  return () => clearTimeout(t)
+}, [response])
+```
+
+**2. Fast load — content lands before player starts.** State will be `idle + ready`. Engine swaps the idle prompt to "content ready · tap to continue" automatically; tap fires `onDismiss(0, 'idle-ready')`.
+
+**3. Player wants out, content not ready.** Use `<LoadingGame skipButton/>` which renders an external "Skip" button. Click triggers `onDismiss(score, 'forced')`. Your host decides what to do — show a placeholder, fast-track the work, or fall back to a different UI.
+
+**4. Player is killing it on a high-score run, content has been ready 30s.** The return button (top-right "● READY" badge) is clickable mid-play — single tap to bail. Set `returnButton: false` if you want to force the player to play to game-over.
+
+**5. Player accidentally taps and game starts, instantly regrets.** Press `Esc` to dismiss. Mouse → tap return button. Both fire `onDismiss(0, 'user')`.
+
+**6. Game paused during ready signal.** State stays paused (tab hidden, etc). When player returns and engine resumes, badge appears retroactively. `onPause` / `onResume` callbacks let you log this gap for analytics.
 
 ## Behavior contract
 

@@ -3,7 +3,12 @@ import type { GameConfig, Point } from '@load-games/core'
 
 type Direction = 'up' | 'down' | 'left' | 'right'
 
-const GRID = 20
+// GRID is computed per-instance from canvas dims so small canvases stay playable.
+// Target ~16 cells across; clamped to [10, 24]px so cells stay visible but not chunky.
+function computeGridPx(canvasW: number, canvasH: number) {
+  const target = Math.floor(Math.min(canvasW, canvasH) / 16)
+  return Math.max(10, Math.min(24, target))
+}
 
 function randomCell(cols: number, rows: number): Point {
   return { x: Math.floor(Math.random() * cols), y: Math.floor(Math.random() * rows) }
@@ -27,6 +32,7 @@ export class SnakeEngine extends BaseEngine {
   private readonly input: InputManager
   private cols = 0
   private rows = 0
+  private grid = 20
 
   private get stepMs() {
     return 600 - (this.clampedSpeed - 1) * 55
@@ -34,8 +40,9 @@ export class SnakeEngine extends BaseEngine {
 
   constructor(canvas: HTMLCanvasElement, config: GameConfig = {}) {
     super(canvas, config)
-    this.cols = Math.floor(this.width / GRID)
-    this.rows = Math.floor(this.height / GRID)
+    this.grid = computeGridPx(this.width, this.height)
+    this.cols = Math.floor(this.width / this.grid)
+    this.rows = Math.floor(this.height / this.grid)
     this.input = new InputManager(canvas)
     this.bindInput()
     this.reset()
@@ -119,12 +126,13 @@ export class SnakeEngine extends BaseEngine {
     ctx.fillStyle = theme.bg
     ctx.fillRect(0, 0, w, h)
 
+    const g = this.grid
     ctx.fillStyle = theme.accent
-    ctx.fillRect(this.food.x * GRID + 2, this.food.y * GRID + 2, GRID - 4, GRID - 4)
+    ctx.fillRect(this.food.x * g + 2, this.food.y * g + 2, g - 4, g - 4)
 
     this.snake.forEach((seg, i) => {
       ctx.fillStyle = i === 0 ? theme.primary : theme.accent
-      ctx.fillRect(seg.x * GRID + 1, seg.y * GRID + 1, GRID - 2, GRID - 2)
+      ctx.fillRect(seg.x * g + 1, seg.y * g + 1, g - 2, g - 2)
     })
 
     ctx.fillStyle = theme.text

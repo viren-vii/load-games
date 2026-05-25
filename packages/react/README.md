@@ -1,6 +1,6 @@
 # @load-games/react
 
-React `<GameCanvas/>` wrapper for [load-games](https://github.com/viren-vii/load-games) engines.
+React components for [load-games](https://github.com/viren-vii/load-games) engines. Exports `<GameCanvas/>` (raw) and `<LoadingGame/>` (bundled UX with optional Skip button).
 
 ## Install
 
@@ -10,7 +10,43 @@ pnpm add @load-games/react @load-games/core @load-games/snake
 
 `react` and `react-dom` `>=18` are peer dependencies. React 19 also supported.
 
-## Usage
+## Quick start (bundled UX)
+
+```tsx
+import { LoadingGame } from '@load-games/react'
+import { SnakeEngine } from '@load-games/snake'
+
+export function Loader({ done }: { done: boolean }) {
+  return (
+    <LoadingGame
+      engine={SnakeEngine}
+      width={320}
+      height={320}
+      ready={done}
+      onDismiss={(score, reason) => console.log('exit', score, reason)}
+    />
+  )
+}
+```
+
+Renders the canvas with an external "Skip" button below. Player can:
+- Play through to game-over and tap "continue" (when `ready={true}`)
+- Tap the in-canvas "● READY" badge in the top-right (when `ready={true}` and mid-play)
+- Press `Esc` (when `ready={true}`)
+- Click the external "Skip" button (always)
+- Hit any of these → `onDismiss(score, reason)` fires once
+
+### `LoadingGame` props (in addition to all `GameCanvas` props)
+
+| Prop | Default | Effect |
+|---|---|---|
+| `skipButton` | `true` | Show the external skip button |
+| `skipLabel` | `"Skip"` | Button text |
+| `skipPosition` | `'bottom'` | `'top'`, `'bottom'`, or `'right'` |
+| `skipButtonStyle` | `{}` | Inline style override for the button |
+| `wrapperStyle` | `{}` | Inline style override for the wrapping flex div |
+
+## Raw canvas (compose your own UI)
 
 ```tsx
 import { GameCanvas } from '@load-games/react'

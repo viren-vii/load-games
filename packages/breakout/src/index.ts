@@ -23,6 +23,7 @@ export class BreakoutEngine extends BaseEngine {
   private score = 0
   private level = 1
   private lives = 3
+  private serving = false // post-death rest state; ball sticks above paddle until tap
   private readonly input: InputManager
 
   private pointerX: number | null = null
@@ -49,12 +50,21 @@ export class BreakoutEngine extends BaseEngine {
     this.input.on('arrowRight', () => { if (this.state === 'idle') { this.beginGame(); return }; this.paddle.vel = 1 })
     this.input.on('tap', () => {
       if (this.state === 'idle') { this.beginGame(); return }
+      if (this.state === 'running' && this.serving) { this.launchBall(); return }
       if (this.state === 'gameover') {
         this.tryGameOverRestart(() => {
           this.lives = 3; this.level = 1; this.score = 0; this.reset(); this.restartGame()
         })
       }
     })
+  }
+
+  private launchBall() {
+    const angle = (Math.random() * 60 + 60) * (Math.PI / 180)
+    const spd = this.ballSpeed
+    this.ball.vx = spd * Math.cos(angle) * (Math.random() < 0.5 ? 1 : -1)
+    this.ball.vy = -spd * Math.sin(angle)
+    this.serving = false
   }
 
   private reset() {
@@ -101,6 +111,13 @@ export class BreakoutEngine extends BaseEngine {
       this.paddle.vel *= 0.85
     }
 
+    // While serving, ball rides above the paddle. No physics until launch.
+    if (this.serving) {
+      this.ball.x = this.paddle.x + this.paddle.w / 2
+      this.ball.y = paddleY - BALL_R - 2
+      return
+    }
+
     this.ball.x += this.ball.vx * dtSec
     this.ball.y += this.ball.vy * dtSec
 
@@ -118,9 +135,11 @@ export class BreakoutEngine extends BaseEngine {
         this.config.onGameOver?.(this.score)
         return
       }
-      const angle = (Math.random() * 60 + 60) * (Math.PI / 180)
-      const spd = this.ballSpeed
-      this.ball = { x: w / 2, y: h - 80, vx: spd * Math.cos(angle) * (Math.random() < 0.5 ? 1 : -1), vy: -spd * Math.sin(angle) }
+      // Rest the ball above the paddle and wait for the player to tap-serve.
+      // Gives them a moment to gather composure instead of being thrust into action.
+      this.serving = true
+      this.ball.vx = 0
+      this.ball.vy = 0
       return
     }
 
@@ -195,6 +214,15 @@ export class BreakoutEngine extends BaseEngine {
     ctx.textAlign = 'right'
     ctx.fillText('♥'.repeat(this.lives), w - 8, 20)
     ctx.textAlign = 'left'
+
+    if (this.serving && this.state === 'running') {
+      ctx.textAlign = 'center'
+      const alpha = 0.5 + 0.5 * Math.sin(Date.now() / 350)
+      ctx.fillStyle = theme.text + Math.round(alpha * 255).toString(16).padStart(2, '0')
+      ctx.font = '11px monospace'
+      ctx.fillText(this.labels.tapServe, w / 2, h - 18)
+      ctx.textAlign = 'left'
+    }
 
     if (this.state === 'gameover') this.renderGameOver(`Score: ${this.score}`)
   }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { GameCanvas, type GameHandle, type EngineClass } from '@load-games/react'
+import { LoadingGame, type GameHandle, type EngineClass } from '@load-games/react'
+import type { DismissReason } from '@load-games/core'
 import { QrButton } from './QrButton'
 import { SnakeEngine } from '@load-games/snake'
 import { FlappyEngine } from '@load-games/flappy'
@@ -57,7 +58,9 @@ export function App() {
   const handleScore = (n: number) => { setScore(n); log(`onScore(${n})`) }
   const handleGameOver = (n: number) => { setScore(n); log(`onGameOver(${n})`) }
   const handleReady = () => log('onReady()')
-  const handleDismiss = (n: number) => { log(`onDismiss(${n}) → unmount`); setMounted(false) }
+  const handleDismiss = (n: number, reason: DismissReason) => { log(`onDismiss(${n}, '${reason}') → unmount`); setMounted(false) }
+  const handlePause = () => log('onPause()')
+  const handleResume = () => log('onResume()')
 
   const resetGameCycle = () => { setReady(false); setMounted(true); setScore(0); setEvents([]); setLoadingMs(null) }
 
@@ -97,7 +100,7 @@ export function App() {
         <div style={s.canvasCol}>
           <div style={s.canvasWrap}>
             {mounted
-              ? <GameCanvas
+              ? <LoadingGame
                   ref={gameRef}
                   // Remount only when game or config changes — engine captures config at mount.
                   key={`${active}|${cfg.width}|${cfg.height}|${cfg.speed}|${cfg.theme.bg}|${cfg.theme.primary}|${cfg.theme.accent}|${cfg.theme.text}`}
@@ -107,11 +110,16 @@ export function App() {
                   speed={cfg.speed}
                   theme={cfg.theme}
                   ready={ready}
+                  skipButton
+                  skipPosition="bottom"
                   onScore={handleScore}
                   onGameOver={handleGameOver}
                   onReady={handleReady}
                   onDismiss={handleDismiss}
+                  onPause={handlePause}
+                  onResume={handleResume}
                   style={s.canvas}
+                  skipButtonStyle={{ color: '#22c55e' }}
                 />
               : <div style={{ ...s.canvas, width: cfg.width, height: cfg.height, ...s.dismissedScreen }}>
                   <div style={s.dismissedTitle}>content delivered</div>

@@ -20,6 +20,8 @@ export class PongEngine extends BaseEngine {
   private ai = { y: 0 }
   private ball = { x: 0, y: 0, vx: 0, vy: 0 }
   private score = { player: 0, ai: 0 }
+  private serving = false
+  private serveDir: 1 | -1 = 1
   private readonly input: InputManager
 
   private pointerY: number | null = null
@@ -41,6 +43,7 @@ export class PongEngine extends BaseEngine {
     this.input.on('arrowDown', () => { if (this.state === 'idle') this.beginGame() })
     this.input.on('tap',       () => {
       if (this.state === 'idle') { this.beginGame(); return }
+      if (this.state === 'running' && this.serving) { this.serve(); return }
       if (this.state === 'gameover') {
         this.tryGameOverRestart(() => { this.score = { player: 0, ai: 0 }; this.reset(); this.restartGame() })
       }
@@ -55,9 +58,18 @@ export class PongEngine extends BaseEngine {
     const h = this.height
     this.player.y = h / 2 - PADDLE_H / 2
     this.ai.y = h / 2 - PADDLE_H / 2
+    // Rest the ball at center; player taps to serve. Same calming pre-serve gap as breakout.
+    this.ball = { x: w / 2, y: h / 2, vx: 0, vy: 0 }
+    this.serving = true
+    this.serveDir = serveDir
+  }
+
+  private serve() {
     const angle = (Math.random() * 40 - 20) * (Math.PI / 180)
     const spd = this.ballSpeed
-    this.ball = { x: w / 2, y: h / 2, vx: spd * Math.cos(angle) * serveDir, vy: spd * Math.sin(angle) }
+    this.ball.vx = spd * Math.cos(angle) * this.serveDir
+    this.ball.vy = spd * Math.sin(angle)
+    this.serving = false
   }
 
   protected update(dt: number) {
@@ -72,6 +84,13 @@ export class PongEngine extends BaseEngine {
     } else {
       if (this.input.isDown('arrowUp'))   this.player.y = Math.max(0, this.player.y - PLAYER_SPEED * dtSec)
       if (this.input.isDown('arrowDown')) this.player.y = Math.min(h - PADDLE_H, this.player.y + PLAYER_SPEED * dtSec)
+    }
+
+    // While serving, paddle responds but ball is held at center. Tap fires serve().
+    if (this.serving) {
+      this.ball.x = w / 2
+      this.ball.y = h / 2
+      return
     }
 
     const aiCenter = this.ai.y + PADDLE_H / 2
@@ -164,6 +183,15 @@ export class PongEngine extends BaseEngine {
       ctx.fillText('move mouse / drag or ↑ ↓', w / 2, h - 8)
     }
     ctx.textAlign = 'left'
+
+    if (this.serving && this.state === 'running') {
+      ctx.textAlign = 'center'
+      const alpha = 0.5 + 0.5 * Math.sin(Date.now() / 350)
+      ctx.fillStyle = theme.text + Math.round(alpha * 255).toString(16).padStart(2, '0')
+      ctx.font = '11px monospace'
+      ctx.fillText(this.labels.tapServe, w / 2, h - 22)
+      ctx.textAlign = 'left'
+    }
 
     if (this.state === 'gameover') {
       const winner = this.score.player > this.score.ai ? 'YOU WIN' : 'AI WINS'
