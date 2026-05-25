@@ -15,11 +15,9 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      # id-token kept for future Trusted-Publisher migration.
-      # Bootstrap publish uses NPM_TOKEN; once each package exists on npm and a
-      # Trusted Publisher is configured (Publisher: GitHub Actions, repo:
-      # viren-vii/load-games, workflow: release.yml), the NPM_TOKEN env can be
-      # removed and OIDC takes over.
+      # OIDC token used by npm CLI to authenticate against the registry via the
+      # Trusted Publisher configured on each @load-games/* package
+      # (Publisher: GitHub Actions, repo: viren-vii/load-games, workflow: release.yml).
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -57,5 +55,5 @@ jobs:
           title: "chore(release): version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # No NPM_TOKEN — npm CLI uses OIDC via ACTIONS_ID_TOKEN_REQUEST_*
+          # injected automatically by the runner (id-token: write permission above).
