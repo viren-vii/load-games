@@ -1,11 +1,21 @@
 {
   "name": "@load-games/runner",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Runner (dino-style endless jumper) game engine for load-games.",
-  "keywords": ["game", "runner", "endless", "canvas", "load-games"],
+  "keywords": [
+    "game",
+    "runner",
+    "endless",
+    "canvas",
+    "load-games"
+  ],
   "author": "Viren Bhosale <virubhosale112@gmail.com>",
   "license": "MIT",
-  "repository": { "type": "git", "url": "git+https://github.com/viren-vii/load-games.git", "directory": "packages/runner" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/viren-vii/load-games.git",
+    "directory": "packages/runner"
+  },
   "homepage": "https://github.com/viren-vii/load-games/tree/main/packages/runner",
   "bugs": "https://github.com/viren-vii/load-games/issues",
   "type": "module",
@@ -20,8 +30,13 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist", "README.md"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -29,6 +44,11 @@
     "test": "vitest run --passWithNoTests",
     "clean": "rm -rf dist"
   },
-  "dependencies": { "@load-games/core": "workspace:*" },
-  "devDependencies": { "tsup": "^8.0.0", "typescript": "^5.5.0" }
+  "dependencies": {
+    "@load-games/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  }
 }
