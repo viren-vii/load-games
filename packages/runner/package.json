@@ -1,6 +1,6 @@
 {
   "name": "@load-games/runner",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Runner (dino-style endless jumper) game engine for load-games.",
   "keywords": [
     "game",

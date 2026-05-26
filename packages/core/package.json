@@ -1,6 +1,6 @@
 {
   "name": "@load-games/core",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Shared game engine primitives: BaseEngine, GameLoop, InputManager. Core of the load-games suite.",
   "keywords": [
     "game",
