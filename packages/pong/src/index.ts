@@ -1,11 +1,19 @@
 import { BaseEngine, InputManager } from '@load-games/core'
 import type { GameConfig } from '@load-games/core'
 
-const PADDLE_W = 10
-const PADDLE_H = 55
-const BALL_SIZE = 8
-const MARGIN = 12
-const PLAYER_SPEED = 320
+// Visual dims tuned at REF=320 and scaled by min(w,h)/REF so paddles, ball,
+// and margins stay sensible on small canvases. Player + AI speed scale by
+// height/REF so reaction window is the same at any size.
+const REF = 320
+const PADDLE_W_REF = 10
+const PADDLE_H_REF = 55
+const BALL_SIZE_REF = 8
+const MARGIN_REF = 12
+const PLAYER_SPEED_REF = 320
+const AI_BASE_SPEED_REF = 140
+const AI_SPEED_PER_LEVEL_REF = 12
+const BALL_BASE_SPEED_REF = 180
+const BALL_SPEED_PER_LEVEL_REF = 25
 const WIN_SCORE = 5
 
 export class PongEngine extends BaseEngine {
@@ -34,8 +42,29 @@ export class PongEngine extends BaseEngine {
     this.pointerY = null
   }
 
+  private get scale() {
+    return Math.min(this.width, this.height) / REF
+  }
+  private get paddleW() {
+    return PADDLE_W_REF * this.scale
+  }
+  private get paddleH() {
+    return PADDLE_H_REF * this.scale
+  }
+  private get ballSize() {
+    return BALL_SIZE_REF * this.scale
+  }
+  private get margin() {
+    return MARGIN_REF * this.scale
+  }
+  private get playerSpeed() {
+    return PLAYER_SPEED_REF * (this.height / REF)
+  }
+  private get aiSpeed() {
+    return (AI_BASE_SPEED_REF + this.clampedSpeed * AI_SPEED_PER_LEVEL_REF) * (this.height / REF)
+  }
   private get ballSpeed() {
-    return 180 + (this.clampedSpeed - 1) * 25
+    return (BALL_BASE_SPEED_REF + (this.clampedSpeed - 1) * BALL_SPEED_PER_LEVEL_REF) * (this.width / REF)
   }
 
   constructor(canvas: HTMLCanvasElement, config: GameConfig = {}) {
@@ -72,8 +101,9 @@ export class PongEngine extends BaseEngine {
   private reset(serveDir: 1 | -1 = 1) {
     const w = this.width
     const h = this.height
-    this.player.y = h / 2 - PADDLE_H / 2
-    this.ai.y = h / 2 - PADDLE_H / 2
+    const paddleH = this.paddleH
+    this.player.y = h / 2 - paddleH / 2
+    this.ai.y = h / 2 - paddleH / 2
     // Rest the ball at center; player taps to serve. Same calming pre-serve gap as breakout.
     this.ball = { x: w / 2, y: h / 2, vx: 0, vy: 0 }
     this.serving = true
@@ -94,12 +124,17 @@ export class PongEngine extends BaseEngine {
     const dtSec = dt / 1000
     const h = this.height
     const w = this.width
+    const paddleH = this.paddleH
+    const paddleW = this.paddleW
+    const ballSize = this.ballSize
+    const margin = this.margin
 
     if (this.pointerY !== null) {
-      this.player.y = Math.max(0, Math.min(h - PADDLE_H, this.pointerY - PADDLE_H / 2))
+      this.player.y = Math.max(0, Math.min(h - paddleH, this.pointerY - paddleH / 2))
     } else {
-      if (this.input.isDown('arrowUp')) this.player.y = Math.max(0, this.player.y - PLAYER_SPEED * dtSec)
-      if (this.input.isDown('arrowDown')) this.player.y = Math.min(h - PADDLE_H, this.player.y + PLAYER_SPEED * dtSec)
+      if (this.input.isDown('arrowUp')) this.player.y = Math.max(0, this.player.y - this.playerSpeed * dtSec)
+      if (this.input.isDown('arrowDown'))
+        this.player.y = Math.min(h - paddleH, this.player.y + this.playerSpeed * dtSec)
     }
 
     // While serving, paddle responds but ball is held at center. Tap fires serve().
@@ -109,53 +144,53 @@ export class PongEngine extends BaseEngine {
       return
     }
 
-    const aiCenter = this.ai.y + PADDLE_H / 2
-    const aiSpeed = (140 + this.clampedSpeed * 12) * dtSec
-    if (aiCenter < this.ball.y - 4) this.ai.y = Math.min(h - PADDLE_H, this.ai.y + aiSpeed)
+    const aiCenter = this.ai.y + paddleH / 2
+    const aiSpeed = this.aiSpeed * dtSec
+    if (aiCenter < this.ball.y - 4) this.ai.y = Math.min(h - paddleH, this.ai.y + aiSpeed)
     else if (aiCenter > this.ball.y + 4) this.ai.y = Math.max(0, this.ai.y - aiSpeed)
 
     this.ball.x += this.ball.vx * dtSec
     this.ball.y += this.ball.vy * dtSec
 
-    if (this.ball.y < BALL_SIZE / 2) {
-      this.ball.y = BALL_SIZE / 2
+    if (this.ball.y < ballSize / 2) {
+      this.ball.y = ballSize / 2
       this.ball.vy = Math.abs(this.ball.vy)
     }
-    if (this.ball.y > h - BALL_SIZE / 2) {
-      this.ball.y = h - BALL_SIZE / 2
+    if (this.ball.y > h - ballSize / 2) {
+      this.ball.y = h - ballSize / 2
       this.ball.vy = -Math.abs(this.ball.vy)
     }
 
-    const playerX = MARGIN + PADDLE_W
+    const playerX = margin + paddleW
     if (
       this.ball.vx < 0 &&
-      this.ball.x - BALL_SIZE / 2 <= playerX &&
-      this.ball.x - BALL_SIZE / 2 >= MARGIN &&
-      this.ball.y >= this.player.y - BALL_SIZE / 2 &&
-      this.ball.y <= this.player.y + PADDLE_H + BALL_SIZE / 2
+      this.ball.x - ballSize / 2 <= playerX &&
+      this.ball.x - ballSize / 2 >= margin &&
+      this.ball.y >= this.player.y - ballSize / 2 &&
+      this.ball.y <= this.player.y + paddleH + ballSize / 2
     ) {
-      const hit = (this.ball.y - (this.player.y + PADDLE_H / 2)) / (PADDLE_H / 2)
+      const hit = (this.ball.y - (this.player.y + paddleH / 2)) / (paddleH / 2)
       const angle = hit * 60 * (Math.PI / 180)
       const spd = Math.sqrt(this.ball.vx ** 2 + this.ball.vy ** 2) * 1.03
       this.ball.vx = Math.abs(spd * Math.cos(angle))
       this.ball.vy = spd * Math.sin(angle)
-      this.ball.x = playerX + BALL_SIZE / 2
+      this.ball.x = playerX + ballSize / 2
     }
 
-    const aiX = w - MARGIN - PADDLE_W
+    const aiX = w - margin - paddleW
     if (
       this.ball.vx > 0 &&
-      this.ball.x + BALL_SIZE / 2 >= aiX &&
-      this.ball.x + BALL_SIZE / 2 <= w - MARGIN &&
-      this.ball.y >= this.ai.y - BALL_SIZE / 2 &&
-      this.ball.y <= this.ai.y + PADDLE_H + BALL_SIZE / 2
+      this.ball.x + ballSize / 2 >= aiX &&
+      this.ball.x + ballSize / 2 <= w - margin &&
+      this.ball.y >= this.ai.y - ballSize / 2 &&
+      this.ball.y <= this.ai.y + paddleH + ballSize / 2
     ) {
-      const hit = (this.ball.y - (this.ai.y + PADDLE_H / 2)) / (PADDLE_H / 2)
+      const hit = (this.ball.y - (this.ai.y + paddleH / 2)) / (paddleH / 2)
       const angle = hit * 60 * (Math.PI / 180)
       const spd = Math.sqrt(this.ball.vx ** 2 + this.ball.vy ** 2) * 1.03
       this.ball.vx = -Math.abs(spd * Math.cos(angle))
       this.ball.vy = spd * Math.sin(angle)
-      this.ball.x = aiX - BALL_SIZE / 2
+      this.ball.x = aiX - ballSize / 2
     }
 
     if (this.ball.x < 0) {
@@ -188,11 +223,18 @@ export class PongEngine extends BaseEngine {
     const { ctx, theme } = this
     const w = this.width
     const h = this.height
+    const paddleH = this.paddleH
+    const paddleW = this.paddleW
+    const ballSize = this.ballSize
+    const margin = this.margin
+    const scoreFont = Math.max(12, Math.round(20 * this.scale))
+    const hintFont = Math.max(8, Math.round(10 * this.scale))
+    const serveFont = Math.max(8, Math.round(11 * this.scale))
 
     ctx.fillStyle = theme.bg
     ctx.fillRect(0, 0, w, h)
 
-    ctx.setLineDash([6, 6])
+    ctx.setLineDash([6 * this.scale, 6 * this.scale])
     ctx.strokeStyle = theme.primary + '33'
     ctx.lineWidth = 1
     ctx.beginPath()
@@ -202,25 +244,25 @@ export class PongEngine extends BaseEngine {
     ctx.setLineDash([])
 
     ctx.fillStyle = theme.primary
-    ctx.fillRect(MARGIN, this.player.y, PADDLE_W, PADDLE_H)
+    ctx.fillRect(margin, this.player.y, paddleW, paddleH)
     ctx.fillStyle = theme.accent
-    ctx.fillRect(w - MARGIN - PADDLE_W, this.ai.y, PADDLE_W, PADDLE_H)
+    ctx.fillRect(w - margin - paddleW, this.ai.y, paddleW, paddleH)
 
     ctx.fillStyle = theme.primary
-    ctx.fillRect(this.ball.x - BALL_SIZE / 2, this.ball.y - BALL_SIZE / 2, BALL_SIZE, BALL_SIZE)
+    ctx.fillRect(this.ball.x - ballSize / 2, this.ball.y - ballSize / 2, ballSize, ballSize)
 
-    ctx.font = 'bold 20px monospace'
+    ctx.font = `bold ${scoreFont}px monospace`
     ctx.textAlign = 'center'
     ctx.fillStyle = theme.text
-    ctx.fillText(`${this.score.player}`, w / 4, 28)
+    ctx.fillText(`${this.score.player}`, w / 4, scoreFont + 8)
     ctx.fillStyle = theme.accent
-    ctx.fillText(`${this.score.ai}`, (w * 3) / 4, 28)
+    ctx.fillText(`${this.score.ai}`, (w * 3) / 4, scoreFont + 8)
 
-    ctx.font = '10px monospace'
+    ctx.font = `${hintFont}px monospace`
     ctx.fillStyle = theme.text + '55'
-    ctx.fillText('YOU', MARGIN * 2 + PADDLE_W, h - 8)
+    ctx.fillText('YOU', margin * 2 + paddleW, h - 8)
     ctx.textAlign = 'right'
-    ctx.fillText('AI', w - MARGIN * 2 - PADDLE_W, h - 8)
+    ctx.fillText('AI', w - margin * 2 - paddleW, h - 8)
 
     if (this.pointerY === null) {
       ctx.textAlign = 'center'
@@ -237,8 +279,8 @@ export class PongEngine extends BaseEngine {
         Math.round(alpha * 255)
           .toString(16)
           .padStart(2, '0')
-      ctx.font = '11px monospace'
-      ctx.fillText(this.labels.tapServe, w / 2, h - 22)
+      ctx.font = `${serveFont}px monospace`
+      ctx.fillText(this.labels.tapServe, w / 2, h - 22 * this.scale)
       ctx.textAlign = 'left'
     }
 

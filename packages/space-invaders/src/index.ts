@@ -1,17 +1,25 @@
 import { BaseEngine, InputManager } from '@load-games/core'
 import type { GameConfig } from '@load-games/core'
 
+// All visual dims tuned at REF=320 and scaled by min(w,h)/REF so invaders,
+// ship, and bullets stay proportional on small canvases. Player + bullet
+// speed scale by width/REF so the reaction window is the same at any size.
+const REF = 320
 const INVADER_COLS = 8
 const INVADER_ROWS = 4
-const INV_W = 22
-const INV_H = 14
-const INV_PAD_X = 10
-const INV_PAD_Y = 8
-const PLAYER_W = 28
-const PLAYER_H = 12
-const BULLET_W = 3
-const BULLET_H = 10
-const PLAYER_SPEED = 240
+const INV_W_REF = 22
+const INV_H_REF = 14
+const INV_PAD_X_REF = 10
+const INV_PAD_Y_REF = 8
+const INV_TOP_REF = 36
+const INV_STEP_REF = 8
+const PLAYER_W_REF = 28
+const PLAYER_H_REF = 12
+const PLAYER_BOTTOM_REF = 8
+const BULLET_W_REF = 3
+const BULLET_H_REF = 10
+const PLAYER_SPEED_REF = 240
+const BULLET_SPEED_REF = 280
 
 interface Invader {
   x: number
@@ -54,6 +62,49 @@ export class SpaceInvadersEngine extends BaseEngine {
     this.pointerX = null
   }
 
+  private get scale() {
+    return Math.min(this.width, this.height) / REF
+  }
+  private get widthScale() {
+    return this.width / REF
+  }
+  private get invW() {
+    return INV_W_REF * this.scale
+  }
+  private get invH() {
+    return INV_H_REF * this.scale
+  }
+  private get invPadY() {
+    return INV_PAD_Y_REF * this.scale
+  }
+  private get invTop() {
+    return INV_TOP_REF * this.scale
+  }
+  private get invStep() {
+    return INV_STEP_REF * this.widthScale
+  }
+  private get playerW() {
+    return PLAYER_W_REF * this.scale
+  }
+  private get playerH() {
+    return PLAYER_H_REF * this.scale
+  }
+  private get playerBottom() {
+    return PLAYER_BOTTOM_REF * this.scale
+  }
+  private get bulletW() {
+    return BULLET_W_REF * this.scale
+  }
+  private get bulletH() {
+    return BULLET_H_REF * this.scale
+  }
+  private get playerSpeed() {
+    return PLAYER_SPEED_REF * this.widthScale
+  }
+  private get bulletSpeed() {
+    return BULLET_SPEED_REF * (this.height / REF)
+  }
+
   constructor(canvas: HTMLCanvasElement, config: GameConfig = {}) {
     super(canvas, config)
     this.input = new InputManager(canvas)
@@ -86,21 +137,30 @@ export class SpaceInvadersEngine extends BaseEngine {
 
   private init() {
     const w = this.width
+    const invW = this.invW
+    const invH = this.invH
+    const invPadY = this.invPadY
     // Adaptive horizontal spacing: at the reference 320px width the layout uses
-    // INV_PAD_X (10px). On narrower canvases we squeeze the gaps (down to 2px)
-    // so all 8 columns always fit. Beyond 320 the spacing stays at the reference value.
-    const naturalTotalW = INVADER_COLS * (INV_W + INV_PAD_X) - INV_PAD_X
-    const minTotalW = INVADER_COLS * (INV_W + 2) - 2
+    // INV_PAD_X (10px scaled). On narrower canvases we squeeze the gaps (down to
+    // 2px minimum) so all 8 columns always fit. Beyond 320 the spacing stays at the reference value.
+    const invPadXNatural = INV_PAD_X_REF * this.scale
+    const naturalTotalW = INVADER_COLS * (invW + invPadXNatural) - invPadXNatural
+    const minTotalW = INVADER_COLS * (invW + 2) - 2
     const totalW = Math.min(naturalTotalW, Math.max(minTotalW, w - 12))
-    const padX = (totalW - INVADER_COLS * INV_W + INV_W) / (INVADER_COLS - 1) - INV_W
+    const padX = (totalW - INVADER_COLS * invW + invW) / (INVADER_COLS - 1) - invW
     const startX = (w - totalW) / 2
     this.invaders = []
     for (let r = 0; r < INVADER_ROWS; r++) {
       for (let c = 0; c < INVADER_COLS; c++) {
-        this.invaders.push({ x: startX + c * (INV_W + padX), y: 36 + r * (INV_H + INV_PAD_Y), alive: true, row: r })
+        this.invaders.push({
+          x: startX + c * (invW + padX),
+          y: this.invTop + r * (invH + invPadY),
+          alive: true,
+          row: r,
+        })
       }
     }
-    this.playerX = this.width / 2 - PLAYER_W / 2
+    this.playerX = this.width / 2 - this.playerW / 2
     this.bullets = []
     this.invDir = 1
     this.invMoveTimer = 0
@@ -110,7 +170,11 @@ export class SpaceInvadersEngine extends BaseEngine {
 
   private shoot() {
     if (this.shootCooldown > 0) return
-    this.bullets.push({ x: this.playerX + PLAYER_W / 2, y: this.height - PLAYER_H - 16, dir: -1 })
+    this.bullets.push({
+      x: this.playerX + this.playerW / 2,
+      y: this.height - this.playerH - 16 * this.scale,
+      dir: -1,
+    })
     this.shootCooldown = 350
   }
 
@@ -124,7 +188,7 @@ export class SpaceInvadersEngine extends BaseEngine {
       if (Math.random() < 1 / aliveCount) chosen = inv
     }
     if (!chosen) return
-    this.bullets.push({ x: chosen.x + INV_W / 2, y: chosen.y + INV_H, dir: 1 })
+    this.bullets.push({ x: chosen.x + this.invW / 2, y: chosen.y + this.invH, dir: 1 })
   }
 
   protected update(dt: number) {
@@ -132,14 +196,24 @@ export class SpaceInvadersEngine extends BaseEngine {
     this.input.shouldPreventScroll = true
     const dtSec = dt / 1000
     const h = this.height
+    const invW = this.invW
+    const invH = this.invH
+    const invPadY = this.invPadY
+    const invStep = this.invStep
+    const playerW = this.playerW
+    const playerH = this.playerH
+    const bulletW = this.bulletW
+    const bulletH = this.bulletH
+    const bulletSpeed = this.bulletSpeed
+    const playerSpeed = this.playerSpeed
 
     if (this.pointerX !== null) {
       // Pointer drag (mouse / touch / pen) directly positions the ship — primary mobile control.
-      this.playerX = Math.max(0, Math.min(this.width - PLAYER_W, this.pointerX - PLAYER_W / 2))
+      this.playerX = Math.max(0, Math.min(this.width - playerW, this.pointerX - playerW / 2))
     } else {
-      if (this.input.isDown('arrowLeft')) this.playerX = Math.max(0, this.playerX - PLAYER_SPEED * dtSec)
+      if (this.input.isDown('arrowLeft')) this.playerX = Math.max(0, this.playerX - playerSpeed * dtSec)
       if (this.input.isDown('arrowRight'))
-        this.playerX = Math.min(this.width - PLAYER_W, this.playerX + PLAYER_SPEED * dtSec)
+        this.playerX = Math.min(this.width - playerW, this.playerX + playerSpeed * dtSec)
     }
 
     this.shootCooldown = Math.max(0, this.shootCooldown - dt)
@@ -151,17 +225,17 @@ export class SpaceInvadersEngine extends BaseEngine {
 
     // Single-pass scan: count alive, find edge violation, find ship-reach. No allocations.
     let aliveCount = 0
-    let hitEdgeLeft = false,
-      hitEdgeRight = false
+    let hitEdgeLeft = false
+    let hitEdgeRight = false
     let shipReached = false
-    const stepXPreview = 8 * this.invDir
-    const reachY = h - PLAYER_H - 20
+    const stepXPreview = invStep * this.invDir
+    const reachY = h - playerH - 20 * this.scale
     for (const inv of this.invaders) {
       if (!inv.alive) continue
       aliveCount++
       if (inv.x + stepXPreview < 0) hitEdgeLeft = true
-      if (inv.x + INV_W + stepXPreview > this.width) hitEdgeRight = true
-      if (inv.y + INV_H >= reachY) shipReached = true
+      if (inv.x + invW + stepXPreview > this.width) hitEdgeRight = true
+      if (inv.y + invH >= reachY) shipReached = true
     }
     const hitEdge = hitEdgeLeft || hitEdgeRight
 
@@ -172,10 +246,10 @@ export class SpaceInvadersEngine extends BaseEngine {
     this.invMoveTimer += dt
     if (this.invMoveTimer >= moveInterval) {
       this.invMoveTimer = 0
-      const stepX = 8 * this.invDir
+      const stepX = invStep * this.invDir
       if (hitEdge) {
         this.invDir *= -1
-        for (const inv of this.invaders) inv.y += INV_H + 4
+        for (const inv of this.invaders) inv.y += invH + invPadY / 2
       } else {
         for (const inv of this.invaders) inv.x += stepX
       }
@@ -185,10 +259,9 @@ export class SpaceInvadersEngine extends BaseEngine {
       }
     }
 
-    const BULLET_SPEED = 280
     for (let i = this.bullets.length - 1; i >= 0; i--) {
       const b = this.bullets[i]!
-      b.y += b.dir * BULLET_SPEED * dtSec
+      b.y += b.dir * bulletSpeed * dtSec
       if (b.y < 0 || b.y > h) {
         this.bullets.splice(i, 1)
         continue
@@ -198,7 +271,7 @@ export class SpaceInvadersEngine extends BaseEngine {
         let hit = false
         for (const inv of this.invaders) {
           if (!inv.alive) continue
-          if (b.x >= inv.x && b.x <= inv.x + INV_W && b.y <= inv.y + INV_H && b.y >= inv.y) {
+          if (b.x >= inv.x && b.x <= inv.x + invW && b.y <= inv.y + invH && b.y >= inv.y) {
             inv.alive = false
             this.score++
             this.config.onScore?.(this.score)
@@ -213,13 +286,17 @@ export class SpaceInvadersEngine extends BaseEngine {
       }
 
       if (b.dir === 1) {
-        const py = h - PLAYER_H - 8
-        if (b.x >= this.playerX && b.x <= this.playerX + PLAYER_W && b.y >= py && b.y <= py + PLAYER_H) {
+        const py = h - playerH - this.playerBottom
+        if (b.x >= this.playerX && b.x <= this.playerX + playerW && b.y >= py && b.y <= py + playerH) {
           this.endGame()
           return
         }
       }
     }
+
+    // ignore bulletW/bulletH in collision; rendered separately
+    void bulletW
+    void bulletH
 
     if (aliveCount === 0) {
       this.wave++
@@ -238,36 +315,55 @@ export class SpaceInvadersEngine extends BaseEngine {
     const { ctx, theme } = this
     const w = this.width
     const h = this.height
+    const invW = this.invW
+    const invH = this.invH
+    const playerW = this.playerW
+    const playerH = this.playerH
+    const bulletW = this.bulletW
+    const bulletH = this.bulletH
+    const s = this.scale
+    const hudFont = Math.max(9, Math.round(12 * s))
 
     ctx.fillStyle = theme.bg
     ctx.fillRect(0, 0, w, h)
 
+    const invInset = Math.max(1, 3 * s)
+    const invEyeW = Math.max(2, 3 * s)
+    const invEyeH = Math.max(2, 4 * s)
+    const invLegW = Math.max(2, 4 * s)
+    const invLegH = Math.max(2, 3 * s)
+    const invEyeOffset = Math.max(3, 4 * s)
+    const invFootGap = Math.max(3, 5 * s)
     for (const inv of this.invaders) {
       if (!inv.alive) continue
       ctx.fillStyle = inv.row % 2 === 0 ? theme.accent : theme.primary
-      ctx.fillRect(inv.x + 3, inv.y + 3, INV_W - 6, INV_H - 6)
-      ctx.fillRect(inv.x + 4, inv.y, 3, 4)
-      ctx.fillRect(inv.x + INV_W - 7, inv.y, 3, 4)
-      ctx.fillRect(inv.x, inv.y + INV_H - 5, 4, 3)
-      ctx.fillRect(inv.x + INV_W - 4, inv.y + INV_H - 5, 4, 3)
+      ctx.fillRect(inv.x + invInset, inv.y + invInset, invW - invInset * 2, invH - invInset * 2)
+      ctx.fillRect(inv.x + invEyeOffset, inv.y, invEyeW, invEyeH)
+      ctx.fillRect(inv.x + invW - invEyeOffset - invEyeW, inv.y, invEyeW, invEyeH)
+      ctx.fillRect(inv.x, inv.y + invH - invFootGap, invLegW, invLegH)
+      ctx.fillRect(inv.x + invW - invLegW, inv.y + invH - invFootGap, invLegW, invLegH)
     }
 
-    const py = h - PLAYER_H - 8
+    const py = h - playerH - this.playerBottom
+    const shipInsetX = Math.max(2, 4 * s)
+    const shipInsetY = Math.max(2, 4 * s)
+    const cannonW = Math.max(2, 4 * s)
+    const cannonH = Math.max(3, 6 * s)
     ctx.fillStyle = theme.primary
-    ctx.fillRect(this.playerX + 4, py, PLAYER_W - 8, PLAYER_H - 4)
-    ctx.fillRect(this.playerX, py + 4, PLAYER_W, PLAYER_H - 4)
-    ctx.fillRect(this.playerX + PLAYER_W / 2 - 2, py - 5, 4, 6)
+    ctx.fillRect(this.playerX + shipInsetX, py, playerW - shipInsetX * 2, playerH - shipInsetY)
+    ctx.fillRect(this.playerX, py + shipInsetY, playerW, playerH - shipInsetY)
+    ctx.fillRect(this.playerX + playerW / 2 - cannonW / 2, py - cannonH + 1, cannonW, cannonH)
 
     for (const b of this.bullets) {
       ctx.fillStyle = b.dir === -1 ? theme.accent : '#ef4444'
-      ctx.fillRect(b.x - BULLET_W / 2, b.y, BULLET_W, BULLET_H * b.dir)
+      ctx.fillRect(b.x - bulletW / 2, b.y, bulletW, bulletH * b.dir)
     }
 
     ctx.fillStyle = theme.text
-    ctx.font = '12px monospace'
-    ctx.fillText(`${this.score}`, 8, 20)
+    ctx.font = `${hudFont}px monospace`
+    ctx.fillText(`${this.score}`, 8, hudFont + 6)
     ctx.textAlign = 'center'
-    ctx.fillText(`WAVE ${this.wave}`, w / 2, 20)
+    ctx.fillText(`WAVE ${this.wave}`, w / 2, hudFont + 6)
     ctx.textAlign = 'left'
 
     if (this.state === 'gameover') this.renderGameOver(`Score: ${this.score}`)

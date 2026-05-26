@@ -1,11 +1,21 @@
 import { BaseEngine, InputManager } from '@load-games/core'
 import type { GameConfig } from '@load-games/core'
 
+// All visual dims tuned at REF=320 and scaled by min(w,h)/REF so the layout
+// stays playable on small loaders (160×160 etc.). Speeds scale by width/REF
+// so the player's reaction window is the same at any canvas size.
+const REF = 320
 const BRICK_ROWS = 5
 const BRICK_COLS = 8
-const BRICK_PAD = 4
-const PADDLE_H = 10
-const BALL_R = 7
+const BRICK_PAD_REF = 4
+const BRICK_H_REF = 14
+const BRICK_TOP_REF = 36
+const PADDLE_W_REF = 70
+const PADDLE_H_REF = 10
+const PADDLE_BOTTOM_REF = 8
+const BALL_R_REF = 7
+const PADDLE_SPEED_REF = 280
+const BALL_SPEED_BASE_REF = 180
 
 interface Brick {
   x: number
@@ -24,7 +34,7 @@ export class BreakoutEngine extends BaseEngine {
     'Clear all bricks to advance',
   ]
 
-  private paddle = { x: 0, w: 70, vel: 0 }
+  private paddle = { x: 0, w: 0, vel: 0 }
   private ball = { x: 0, y: 0, vx: 0, vy: 0 }
   private bricks: Brick[] = []
   private score = 0
@@ -40,8 +50,38 @@ export class BreakoutEngine extends BaseEngine {
     if (this.state === 'idle') this.beginGame()
   }
 
+  private get scale() {
+    return Math.min(this.width, this.height) / REF
+  }
+  private get widthScale() {
+    return this.width / REF
+  }
+  private get brickPad() {
+    return BRICK_PAD_REF * this.scale
+  }
+  private get brickH() {
+    return BRICK_H_REF * this.scale
+  }
+  private get brickTop() {
+    return BRICK_TOP_REF * this.scale
+  }
+  private get paddleW() {
+    return PADDLE_W_REF * this.scale
+  }
+  private get paddleH() {
+    return PADDLE_H_REF * this.scale
+  }
+  private get paddleBottom() {
+    return PADDLE_BOTTOM_REF * this.scale
+  }
+  private get ballR() {
+    return BALL_R_REF * this.scale
+  }
+  private get paddleSpeed() {
+    return PADDLE_SPEED_REF * this.widthScale
+  }
   private get ballSpeed() {
-    return 180 + (this.clampedSpeed - 1) * 20 + (this.level - 1) * 15
+    return (BALL_SPEED_BASE_REF + (this.clampedSpeed - 1) * 20 + (this.level - 1) * 15) * this.widthScale
   }
 
   constructor(canvas: HTMLCanvasElement, config: GameConfig = {}) {
@@ -99,17 +139,20 @@ export class BreakoutEngine extends BaseEngine {
   private reset() {
     const w = this.width
     const h = this.height
+    this.paddle.w = this.paddleW
     this.paddle.x = w / 2 - this.paddle.w / 2
     this.pointerX = null
 
-    const brickW = (w - BRICK_PAD * (BRICK_COLS + 1)) / BRICK_COLS
-    const brickH = 14
+    const pad = this.brickPad
+    const brickW = (w - pad * (BRICK_COLS + 1)) / BRICK_COLS
+    const brickH = this.brickH
+    const top = this.brickTop
     this.bricks = []
     for (let r = 0; r < BRICK_ROWS; r++) {
       for (let c = 0; c < BRICK_COLS; c++) {
         this.bricks.push({
-          x: BRICK_PAD + c * (brickW + BRICK_PAD),
-          y: 36 + r * (brickH + BRICK_PAD),
+          x: pad + c * (brickW + pad),
+          y: top + r * (brickH + pad),
           w: brickW,
           h: brickH,
           alive: true,
@@ -122,7 +165,7 @@ export class BreakoutEngine extends BaseEngine {
     const spd = this.ballSpeed
     this.ball = {
       x: w / 2,
-      y: h - 80,
+      y: h - 80 * this.scale,
       vx: spd * Math.cos(angle) * (Math.random() < 0.5 ? 1 : -1),
       vy: -spd * Math.sin(angle),
     }
@@ -134,40 +177,44 @@ export class BreakoutEngine extends BaseEngine {
     const dtSec = dt / 1000
     const w = this.width
     const h = this.height
-    const paddleY = h - PADDLE_H - 8
+    const paddleH = this.paddleH
+    const ballR = this.ballR
+    const paddleY = h - paddleH - this.paddleBottom
 
     if (this.pointerX !== null) {
       this.paddle.x = Math.max(0, Math.min(w - this.paddle.w, this.pointerX - this.paddle.w / 2))
     } else {
-      const PADDLE_SPEED = 280
-      this.paddle.x = Math.max(0, Math.min(w - this.paddle.w, this.paddle.x + this.paddle.vel * PADDLE_SPEED * dtSec))
+      this.paddle.x = Math.max(
+        0,
+        Math.min(w - this.paddle.w, this.paddle.x + this.paddle.vel * this.paddleSpeed * dtSec),
+      )
       this.paddle.vel *= 0.85
     }
 
     // While serving, ball rides above the paddle. No physics until launch.
     if (this.serving) {
       this.ball.x = this.paddle.x + this.paddle.w / 2
-      this.ball.y = paddleY - BALL_R - 2
+      this.ball.y = paddleY - ballR - 2
       return
     }
 
     this.ball.x += this.ball.vx * dtSec
     this.ball.y += this.ball.vy * dtSec
 
-    if (this.ball.x - BALL_R < 0) {
-      this.ball.x = BALL_R
+    if (this.ball.x - ballR < 0) {
+      this.ball.x = ballR
       this.ball.vx = Math.abs(this.ball.vx)
     }
-    if (this.ball.x + BALL_R > w) {
-      this.ball.x = w - BALL_R
+    if (this.ball.x + ballR > w) {
+      this.ball.x = w - ballR
       this.ball.vx = -Math.abs(this.ball.vx)
     }
-    if (this.ball.y - BALL_R < 0) {
-      this.ball.y = BALL_R
+    if (this.ball.y - ballR < 0) {
+      this.ball.y = ballR
       this.ball.vy = Math.abs(this.ball.vy)
     }
 
-    if (this.ball.y - BALL_R > h) {
+    if (this.ball.y - ballR > h) {
       this.lives--
       this.config.onScore?.(this.score)
       if (this.lives <= 0) {
@@ -187,17 +234,17 @@ export class BreakoutEngine extends BaseEngine {
 
     if (
       this.ball.vy > 0 &&
-      this.ball.y + BALL_R >= paddleY &&
-      this.ball.y + BALL_R <= paddleY + PADDLE_H + 4 &&
-      this.ball.x >= this.paddle.x - BALL_R &&
-      this.ball.x <= this.paddle.x + this.paddle.w + BALL_R
+      this.ball.y + ballR >= paddleY &&
+      this.ball.y + ballR <= paddleY + paddleH + 4 * this.scale &&
+      this.ball.x >= this.paddle.x - ballR &&
+      this.ball.x <= this.paddle.x + this.paddle.w + ballR
     ) {
       const hit = (this.ball.x - (this.paddle.x + this.paddle.w / 2)) / (this.paddle.w / 2)
       const angle = hit * 65 * (Math.PI / 180)
       const spd = Math.sqrt(this.ball.vx ** 2 + this.ball.vy ** 2)
       this.ball.vx = spd * Math.sin(angle)
       this.ball.vy = -Math.abs(spd * Math.cos(angle))
-      this.ball.y = paddleY - BALL_R
+      this.ball.y = paddleY - ballR
     }
 
     let allDead = true
@@ -208,7 +255,7 @@ export class BreakoutEngine extends BaseEngine {
       const nearY = Math.max(brick.y, Math.min(brick.y + brick.h, this.ball.y))
       const dx = this.ball.x - nearX
       const dy = this.ball.y - nearY
-      if (dx * dx + dy * dy < BALL_R * BALL_R) {
+      if (dx * dx + dy * dy < ballR * ballR) {
         brick.alive = false
         this.score++
         this.config.onScore?.(this.score)
@@ -227,7 +274,11 @@ export class BreakoutEngine extends BaseEngine {
     const { ctx, theme } = this
     const w = this.width
     const h = this.height
-    const paddleY = h - PADDLE_H - 8
+    const paddleH = this.paddleH
+    const ballR = this.ballR
+    const paddleY = h - paddleH - this.paddleBottom
+    const hudFont = Math.max(9, Math.round(12 * this.scale))
+    const serveFont = Math.max(8, Math.round(11 * this.scale))
 
     ctx.fillStyle = theme.bg
     ctx.fillRect(0, 0, w, h)
@@ -243,21 +294,21 @@ export class BreakoutEngine extends BaseEngine {
 
     ctx.fillStyle = theme.primary
     ctx.beginPath()
-    ctx.roundRect(this.paddle.x, paddleY, this.paddle.w, PADDLE_H, 3)
+    ctx.roundRect(this.paddle.x, paddleY, this.paddle.w, paddleH, Math.max(2, 3 * this.scale))
     ctx.fill()
 
     ctx.fillStyle = theme.accent
     ctx.beginPath()
-    ctx.arc(this.ball.x, this.ball.y, BALL_R, 0, Math.PI * 2)
+    ctx.arc(this.ball.x, this.ball.y, ballR, 0, Math.PI * 2)
     ctx.fill()
 
     ctx.fillStyle = theme.text
-    ctx.font = '12px monospace'
-    ctx.fillText(`${this.score}`, 8, 20)
+    ctx.font = `${hudFont}px monospace`
+    ctx.fillText(`${this.score}`, 8, hudFont + 6)
     ctx.textAlign = 'center'
-    ctx.fillText(`LVL ${this.level}`, w / 2, 20)
+    ctx.fillText(`LVL ${this.level}`, w / 2, hudFont + 6)
     ctx.textAlign = 'right'
-    ctx.fillText('♥'.repeat(this.lives), w - 8, 20)
+    ctx.fillText('♥'.repeat(this.lives), w - 8, hudFont + 6)
     ctx.textAlign = 'left'
 
     if (this.serving && this.state === 'running') {
@@ -268,8 +319,8 @@ export class BreakoutEngine extends BaseEngine {
         Math.round(alpha * 255)
           .toString(16)
           .padStart(2, '0')
-      ctx.font = '11px monospace'
-      ctx.fillText(this.labels.tapServe, w / 2, h - 18)
+      ctx.font = `${serveFont}px monospace`
+      ctx.fillText(this.labels.tapServe, w / 2, h - 18 * this.scale)
       ctx.textAlign = 'left'
     }
 
