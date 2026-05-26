@@ -2,10 +2,15 @@ import { GameLoop } from '../timing/index.js'
 import type { DismissReason, GameConfig, GameLabels, GameState, GameTheme } from '../types/index.js'
 import { DEFAULT_CONFIG, DEFAULT_LABELS, DEFAULT_THEME } from '../types/index.js'
 
-const BADGE_PAD_X = 6
-const BADGE_PAD_Y = 4
-const BADGE_HEIGHT = 16
-const BADGE_MARGIN = 6
+// Reference dims (320×320) for the engine-managed UI overlays — badge, gameover
+// banner, idle screen. All sizes scale by min(w,h)/REF so the UI fits on small
+// loaders (160×160 etc.) without clipping.
+const UI_REF = 320
+const BADGE_PAD_X_REF = 6
+const BADGE_PAD_Y_REF = 4
+const BADGE_HEIGHT_REF = 16
+const BADGE_MARGIN_REF = 6
+const BADGE_FONT_REF = 10
 
 export abstract class BaseEngine {
   protected readonly canvas: HTMLCanvasElement
@@ -166,6 +171,11 @@ export abstract class BaseEngine {
     return Math.max(1, Math.min(10, this.config.speed ?? 5))
   }
 
+  /** Scale factor for engine-managed UI overlays. 1.0 at 320×320, <1 at smaller canvases. */
+  protected get uiScale(): number {
+    return Math.min(this.width, this.height) / UI_REF
+  }
+
   /**
    * Subclasses call this from their gameover-tap handler instead of restarting directly.
    * If host has signalled ready, dismiss instead of restart. Otherwise run the supplied restart fn.
@@ -182,13 +192,18 @@ export abstract class BaseEngine {
     const { ctx, theme } = this
     const w = this.width
     const h = this.height
+    const s = this.uiScale
+    const titleFont = Math.max(11, Math.round(18 * s))
+    const promptFont = Math.max(9, Math.round(13 * s))
+    const titleY = h / 2 - Math.round(10 * s)
+    const promptY = h / 2 + Math.round(promptFont + 4)
     ctx.fillStyle = 'rgba(0,0,0,0.65)'
     ctx.fillRect(0, 0, w, h)
     ctx.fillStyle = theme.text
-    ctx.font = 'bold 18px monospace'
+    ctx.font = `bold ${titleFont}px monospace`
     ctx.textAlign = 'center'
-    ctx.fillText(this.labels.gameOver, w / 2, h / 2 - 10)
-    ctx.font = '13px monospace'
+    ctx.fillText(this.labels.gameOver, w / 2, titleY)
+    ctx.font = `${promptFont}px monospace`
     if (this._ready) {
       const alpha = 0.6 + 0.4 * Math.sin(Date.now() / 300)
       ctx.fillStyle =
@@ -196,17 +211,33 @@ export abstract class BaseEngine {
         Math.round(alpha * 255)
           .toString(16)
           .padStart(2, '0')
-      ctx.fillText(`${scoreText}  •  ${this.labels.tapContinue}`, w / 2, h / 2 + 14)
+      ctx.fillText(`${scoreText}  •  ${this.labels.tapContinue}`, w / 2, promptY)
     } else {
       ctx.fillStyle = theme.text
-      ctx.fillText(`${scoreText}  •  ${this.labels.tapRestart}`, w / 2, h / 2 + 14)
+      ctx.fillText(`${scoreText}  •  ${this.labels.tapRestart}`, w / 2, promptY)
     }
     ctx.textAlign = 'left'
   }
 
-  private static readonly BADGE_FONT = 'bold 10px monospace'
   private badgeTextW = 0
   private badgeLabelCache = ''
+  private badgeLabelCacheScale = 0
+
+  private get badgeFontSize() {
+    return Math.max(8, Math.round(BADGE_FONT_REF * this.uiScale))
+  }
+  private get badgePadX() {
+    return Math.max(3, Math.round(BADGE_PAD_X_REF * this.uiScale))
+  }
+  private get badgePadY() {
+    return Math.max(2, Math.round(BADGE_PAD_Y_REF * this.uiScale))
+  }
+  private get badgeHeight() {
+    return Math.max(11, Math.round(BADGE_HEIGHT_REF * this.uiScale))
+  }
+  private get badgeMargin() {
+    return Math.max(3, Math.round(BADGE_MARGIN_REF * this.uiScale))
+  }
 
   /**
    * Top-right badge shown during play once ready has been signalled.
@@ -216,27 +247,33 @@ export abstract class BaseEngine {
     if (!this._ready) return
     const { ctx, theme } = this
     const w = this.width
+    const padX = this.badgePadX
+    const padY = this.badgePadY
+    const height = this.badgeHeight
+    const margin = this.badgeMargin
+    const fontSize = this.badgeFontSize
     const alpha = 0.55 + 0.45 * Math.sin(Date.now() / 350)
     const alphaHex = Math.round(alpha * 255)
       .toString(16)
       .padStart(2, '0')
-    ctx.font = BaseEngine.BADGE_FONT
+    ctx.font = `bold ${fontSize}px monospace`
     ctx.textAlign = 'right'
-    // Re-measure if label has changed (e.g., custom config.labels.readyBadge).
-    if (this.badgeLabelCache !== this.labels.readyBadge) {
+    // Re-measure if label or scale has changed (custom labels.readyBadge or canvas resize).
+    if (this.badgeLabelCache !== this.labels.readyBadge || this.badgeLabelCacheScale !== fontSize) {
       this.badgeLabelCache = this.labels.readyBadge
+      this.badgeLabelCacheScale = fontSize
       this.badgeTextW = ctx.measureText(this.labels.readyBadge).width
     }
-    const boxW = this.badgeTextW + BADGE_PAD_X * 2
-    const x = w - BADGE_MARGIN - boxW
-    const y = BADGE_MARGIN
+    const boxW = this.badgeTextW + padX * 2
+    const x = w - margin - boxW
+    const y = margin
     ctx.fillStyle = theme.bg + 'cc'
-    ctx.fillRect(x, y, boxW, BADGE_HEIGHT)
+    ctx.fillRect(x, y, boxW, height)
     ctx.strokeStyle = theme.accent + alphaHex
     ctx.lineWidth = 1
-    ctx.strokeRect(x + 0.5, y + 0.5, boxW - 1, BADGE_HEIGHT - 1)
+    ctx.strokeRect(x + 0.5, y + 0.5, boxW - 1, height - 1)
     ctx.fillStyle = theme.accent + alphaHex
-    ctx.fillText(this.labels.readyBadge, w - BADGE_MARGIN - BADGE_PAD_X, y + BADGE_HEIGHT - BADGE_PAD_Y - 1)
+    ctx.fillText(this.labels.readyBadge, w - margin - padX, y + height - padY - 1)
     ctx.textAlign = 'left'
   }
 
@@ -251,10 +288,13 @@ export abstract class BaseEngine {
     const rect = this.canvas.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
-    const boxW = this.badgeTextW + BADGE_PAD_X * 2
-    const boxX = this.width - BADGE_MARGIN - boxW
-    const boxY = BADGE_MARGIN
-    return x >= boxX && x <= boxX + boxW && y >= boxY && y <= boxY + BADGE_HEIGHT
+    const padX = this.badgePadX
+    const margin = this.badgeMargin
+    const height = this.badgeHeight
+    const boxW = this.badgeTextW + padX * 2
+    const boxX = this.width - margin - boxW
+    const boxY = margin
+    return x >= boxX && x <= boxX + boxW && y >= boxY && y <= boxY + height
   }
 
   private setupCanvas() {
@@ -283,27 +323,42 @@ export abstract class BaseEngine {
     const { ctx, theme } = this
     const w = this.width
     const h = this.height
+    const s = this.uiScale
+    // Stack everything around the canvas center; row spacing scales with the
+    // hint font so nothing overflows on small canvases.
+    const titleFont = Math.max(11, Math.min(22, Math.round(22 * s)))
+    const hintSize = Math.max(8, Math.min(12, Math.round(12 * s)))
+    const lineGap = Math.max(4, Math.round(6 * s))
+    const rowH = hintSize + lineGap
+    const titleGap = Math.max(8, Math.round(14 * s))
+    const promptGap = Math.max(10, Math.round(16 * s))
+    const hintCount = this.controlHints.length
+    // Center the (title + hints + prompt) block vertically.
+    const blockH = titleFont + titleGap + hintCount * rowH + promptGap + hintSize
+    const blockTop = Math.max(8, Math.round((h - blockH) / 2))
 
     ctx.fillStyle = theme.bg
     ctx.fillRect(0, 0, w, h)
 
     ctx.fillStyle = theme.primary
-    ctx.font = `bold ${Math.min(22, w / 10)}px monospace`
+    ctx.font = `bold ${titleFont}px monospace`
     ctx.textAlign = 'center'
-    ctx.fillText(this.gameName.toUpperCase(), w / 2, h / 2 - 40)
+    const titleBaseline = blockTop + titleFont
+    ctx.fillText(this.gameName.toUpperCase(), w / 2, titleBaseline)
 
     ctx.strokeStyle = theme.accent + '66'
     ctx.lineWidth = 1
     ctx.beginPath()
-    ctx.moveTo(w / 4, h / 2 - 26)
-    ctx.lineTo((w * 3) / 4, h / 2 - 26)
+    const dividerY = titleBaseline + Math.round(titleGap / 2)
+    ctx.moveTo(w / 4, dividerY)
+    ctx.lineTo((w * 3) / 4, dividerY)
     ctx.stroke()
 
-    const hintSize = Math.max(10, Math.min(12, w / 28))
+    const hintsTop = titleBaseline + titleGap
     ctx.font = `${hintSize}px monospace`
     ctx.fillStyle = theme.text + 'aa'
     this.controlHints.forEach((hint, i) => {
-      ctx.fillText(hint, w / 2, h / 2 - 8 + i * (hintSize + 6))
+      ctx.fillText(hint, w / 2, hintsTop + hintSize + i * rowH)
     })
 
     const alpha = 0.5 + 0.5 * Math.sin(Date.now() / 400)
@@ -315,7 +370,8 @@ export abstract class BaseEngine {
     ctx.font = `bold ${hintSize + 1}px monospace`
     // Swap prompt when host has already signalled ready — let the player exit without playing.
     const prompt = this._ready ? this.labels.idleReady : this.labels.idleStart
-    ctx.fillText(prompt, w / 2, h / 2 + this.controlHints.length * (hintSize + 6) + 16)
+    const promptY = hintsTop + hintCount * rowH + promptGap
+    ctx.fillText(prompt, w / 2, promptY)
 
     ctx.textAlign = 'left'
     this.renderReadyBadge()

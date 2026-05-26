@@ -1,12 +1,18 @@
 import { BaseEngine, InputManager } from '@load-games/core'
 import type { GameConfig } from '@load-games/core'
 
-const GRAVITY = 2200
-const JUMP_VEL = -680
-const PLAYER_W = 20
-const PLAYER_H = 28
-const GROUND_H = 32
-const PLAYER_X = 60
+// Visual dims tuned at REF=320 and scaled by min(w,h)/REF. Horizontal speed
+// already scaled by width/REF. Gravity / jump velocity now scale by height/REF
+// so the jump arc reaches the same proportion of canvas height at any size.
+const REF = 320
+const GRAVITY_REF = 2200
+const JUMP_VEL_REF = -680
+const PLAYER_W_REF = 20
+const PLAYER_H_REF = 28
+const GROUND_H_REF = 32
+const PLAYER_X_REF = 60
+const BASE_SPEED_REF = 200
+const SPEED_PER_LEVEL_REF = 25
 
 interface Obstacle {
   x: number
@@ -29,14 +35,40 @@ export class RunnerEngine extends BaseEngine {
   private speed = 0
   private readonly input: InputManager
 
-  private get groundY() {
-    return this.height - GROUND_H
+  private get scale() {
+    return Math.min(this.width, this.height) / REF
   }
-
+  private get heightScale() {
+    return this.height / REF
+  }
+  private get widthScale() {
+    return this.width / REF
+  }
+  private get playerW() {
+    return PLAYER_W_REF * this.scale
+  }
+  private get playerH() {
+    return PLAYER_H_REF * this.scale
+  }
+  private get groundH() {
+    return GROUND_H_REF * this.scale
+  }
+  private get playerX() {
+    return PLAYER_X_REF * this.widthScale
+  }
+  private get gravity() {
+    return GRAVITY_REF * this.heightScale
+  }
+  private get jumpVel() {
+    return JUMP_VEL_REF * this.heightScale
+  }
+  private get groundY() {
+    return this.height - this.groundH
+  }
   private get baseSpeed() {
     // Scale horizontal velocity by canvas width so player gets the same reaction
     // window at any size. Reference: 320px wide → 200 px/s. At 160 → 100 px/s.
-    return (200 + (this.clampedSpeed - 1) * 25) * (this.width / 320)
+    return (BASE_SPEED_REF + (this.clampedSpeed - 1) * SPEED_PER_LEVEL_REF) * this.widthScale
   }
 
   constructor(canvas: HTMLCanvasElement, config: GameConfig = {}) {
@@ -48,7 +80,7 @@ export class RunnerEngine extends BaseEngine {
   }
 
   private reset() {
-    this.playerY = this.groundY - PLAYER_H
+    this.playerY = this.groundY - this.playerH
     this.playerVel = 0
     this.onGround = true
     this.obstacles = []
@@ -64,7 +96,7 @@ export class RunnerEngine extends BaseEngine {
     if (this.state === 'idle') {
       this.beginGame()
       if (this.onGround) {
-        this.playerVel = JUMP_VEL
+        this.playerVel = this.jumpVel
         this.onGround = false
       }
       return
@@ -77,7 +109,7 @@ export class RunnerEngine extends BaseEngine {
       return
     }
     if (this.state === 'running' && this.onGround) {
-      this.playerVel = JUMP_VEL
+      this.playerVel = this.jumpVel
       this.onGround = false
     }
   }
@@ -86,16 +118,21 @@ export class RunnerEngine extends BaseEngine {
     if (this.state !== 'running') return
     const dtSec = dt / 1000
     const w = this.width
+    const playerW = this.playerW
+    const playerH = this.playerH
+    const playerX = this.playerX
+    const groundY = this.groundY
+    const obsHScale = this.scale
 
     this.elapsed += dt
     this.score = Math.floor(this.elapsed / 100)
-    this.speed = this.baseSpeed + Math.floor(this.elapsed / 3000) * 18
+    this.speed = this.baseSpeed + Math.floor(this.elapsed / 3000) * 18 * this.widthScale
 
-    this.playerVel += GRAVITY * dtSec
+    this.playerVel += this.gravity * dtSec
     this.playerY += this.playerVel * dtSec
 
-    if (this.playerY >= this.groundY - PLAYER_H) {
-      this.playerY = this.groundY - PLAYER_H
+    if (this.playerY >= groundY - playerH) {
+      this.playerY = groundY - playerH
       this.playerVel = 0
       this.onGround = true
     }
@@ -104,8 +141,8 @@ export class RunnerEngine extends BaseEngine {
     if (this.spawnTimer <= 0) {
       const minGap = Math.max(700, 1400 - this.speed * 2)
       this.spawnTimer = minGap + Math.random() * 600
-      const h = 20 + Math.random() * 30
-      this.obstacles.push({ x: w, w: 14 + Math.random() * 12, h })
+      const h = (20 + Math.random() * 30) * obsHScale
+      this.obstacles.push({ x: w, w: (14 + Math.random() * 12) * obsHScale, h })
     }
 
     for (let i = this.obstacles.length - 1; i >= 0; i--) {
@@ -116,13 +153,14 @@ export class RunnerEngine extends BaseEngine {
         continue
       }
 
-      const px = PLAYER_X + 3,
-        py = this.playerY + 3,
-        pw = PLAYER_W - 6,
-        ph = PLAYER_H - 6
-      const ox = obs.x + 1,
-        oy = this.groundY - obs.h,
-        ow = obs.w - 2
+      const inset = 3 * obsHScale
+      const px = playerX + inset
+      const py = this.playerY + inset
+      const pw = playerW - inset * 2
+      const ph = playerH - inset * 2
+      const ox = obs.x + 1
+      const oy = groundY - obs.h
+      const ow = obs.w - 2
       if (px < ox + ow && px + pw > ox && py < oy + obs.h && py + ph > oy) {
         this.setState('gameover')
         this.loop.stop()
@@ -144,12 +182,20 @@ export class RunnerEngine extends BaseEngine {
     const w = this.width
     const h = this.height
     const groundY = this.groundY
+    const groundH = this.groundH
+    const playerW = this.playerW
+    const playerH = this.playerH
+    const playerX = this.playerX
+    const eyeSize = Math.max(2, Math.round(4 * this.scale))
+    const eyeOffset = Math.max(4, Math.round(7 * this.scale))
+    const eyeY = Math.max(3, Math.round(6 * this.scale))
+    const hudFont = Math.max(9, Math.round(12 * this.scale))
 
     ctx.fillStyle = theme.bg
     ctx.fillRect(0, 0, w, h)
 
     ctx.fillStyle = theme.primary + '33'
-    ctx.fillRect(0, groundY, w, GROUND_H)
+    ctx.fillRect(0, groundY, w, groundH)
     ctx.fillStyle = theme.primary + '88'
     ctx.fillRect(0, groundY, w, 1)
 
@@ -157,14 +203,14 @@ export class RunnerEngine extends BaseEngine {
     for (const obs of this.obstacles) ctx.fillRect(obs.x, groundY - obs.h, obs.w, obs.h)
 
     ctx.fillStyle = theme.primary
-    ctx.fillRect(PLAYER_X, this.playerY, PLAYER_W, PLAYER_H)
+    ctx.fillRect(playerX, this.playerY, playerW, playerH)
     ctx.fillStyle = theme.bg
-    ctx.fillRect(PLAYER_X + PLAYER_W - 7, this.playerY + 6, 4, 4)
+    ctx.fillRect(playerX + playerW - eyeOffset, this.playerY + eyeY, eyeSize, eyeSize)
 
     ctx.fillStyle = theme.text
-    ctx.font = '12px monospace'
+    ctx.font = `${hudFont}px monospace`
     ctx.textAlign = 'right'
-    ctx.fillText(`${this.score}m`, w - 8, 20)
+    ctx.fillText(`${this.score}m`, w - 8, hudFont + 6)
     ctx.textAlign = 'left'
 
     if (this.state === 'gameover') this.renderGameOver(`${this.score}m`)
