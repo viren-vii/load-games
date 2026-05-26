@@ -1,5 +1,12 @@
 # @load-games/snake
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies [a391c43]
+  - @load-games/core@0.2.2
+
 ## 0.2.1
 
 ### Patch Changes
